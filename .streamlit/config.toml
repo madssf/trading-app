@@ -1,0 +1,5 @@
+[client]
+
+# Whether to enable st.cache.
+# Default: true
+caching = false

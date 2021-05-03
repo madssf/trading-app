@@ -117,26 +117,30 @@ class FundamentalsRebalancingStakingHODL(Model):
         # use diff matrix to generate instructions
         # adjusting for locked staking
         data = []
-
+        token_diff = self.token_diff().transpose()
+        new_coins = {}
+        gains = self.gains
         for element in diff:
-            # deal with selling first
-            try:
+            # new coins
+            if element not in self.assets.keys():
+                new_coins[element] = 0
+            # SELLING
+            else:
+                liquid = self.assets[element]['tot'] - \
+                    self.assets[element]['locked']
+                min_fiat_trade = self.params['min_trade_fiat'][0]
+                if gains[element] > self.params['profit_pct'][0] and liquid > min_fiat_trade and diff[element] > min_fiat_trade:
+                    data.append(
+                        [element, round(float(token_diff[element][0]), 2), "SELL"])
+        # coins that we don't currently have but need
+        for element in self.market_data['data']:
+            if element['symbol'] in new_coins.keys():
+                diff_fiat = diff[element['symbol']] * -1
+                price = element['quote']['USD']['price']
+                new_coins[element['symbol']] = round(float(diff_fiat/price), 4)
 
-                if diff[element] > self.params['min_trade_fiat'][0]:
-
-                    liquid = self.assets[element]['tot'] - \
-                        self.assets[element]['locked']
-                    if liquid > self.params['min_trade_fiat'][0]:
-                        if diff[element] > 0:
-                            type = 'sell'
-                        else:
-                            type = 'buy'
-                        data.append([element, diff[element], type])
-                    else:
-                        data.append(
-                            [element, diff[element], "sell - wait for unstake"])
-            except(KeyError):
-                data.append([element], diff[element])
+        for element in new_coins:
+            data.append([element, new_coins[element], "BUY"])
         return data
 
     # checking if gain on any coin > rules['profit_pct']

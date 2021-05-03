@@ -1,5 +1,10 @@
 # TODO:
 
+- for testing: change assets
+- logging to g-sheets
+- control scheduler from dashboard
+- cache on dashboard but not lambda func
+- error handling requests
 - check valid input from g-sheets when constructing models
 - email-notification when trade_instructions = True
 - handle unstaking not triggering invalid sales
@@ -12,3 +17,6 @@
 - watchlist
 - general market analysis, fundamentals
 - better readme instructions
+- simulate different strategies and parameters
+- merge model with MCAP model
+  - weighted as param True/False

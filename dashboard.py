@@ -34,8 +34,9 @@ st.sidebar.write(
 st.sidebar.write(f"mcap_coins: {model.mcap_coins}")
 invoke = st.sidebar.button("invoke lambda function")
 if invoke:
-    lambda_func.lambda_handler(
-        {"source": "dashboard"}, {'asssets': assets, 'inputs': sheets['model_inputs'], 'market_data': cmc_market_data})
+    event = {"source": "dashboard"}
+    context = cmc_market_data
+    lambda_func.lambda_handler(event, context)
     invoke = False
 
 

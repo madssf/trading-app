@@ -23,6 +23,7 @@ cmc_session = Session()
 cmc_session.headers.update(cmc_headers)
 
 
+@st.cache
 def cmc_quotes_latest(symbols):
     '''
     :symbols: list[string]
@@ -38,16 +39,22 @@ def cmc_quotes_latest(symbols):
     try:
         response = cmc_session.get(cmc_url_base+quotes_latest, params=payload)
         data = json.loads(response.text)
+        if "data" not in data.keys():
+            raise ValueError(f"data not in cmc-request: {data}")
         return(data)
     except (ConnectionError, Timeout, TooManyRedirects) as e:
         return(e)
 
 
+@st.cache
 def cmc_market_data():
     try:
         response = cmc_session.get(cmc_url_base+listings_latest)
         data = json.loads(response.text)
+        if "data" not in data.keys():
+            raise ValueError(f"data not in cmc-request: {data}")
         return(data)
+
     except (ConnectionError, Timeout, TooManyRedirects) as e:
         return(e)
 
@@ -74,6 +81,7 @@ def get_sheets(names):
     return {name: get_sheet_by_name(name) for name in names}
 
 
+@st.cache
 def get_assets():
     '''
     :returns: {coins: {tot, flex, locked, avg_price, new_price, stake_exp}}}

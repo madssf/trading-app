@@ -30,7 +30,7 @@ st.sidebar.subheader('assets')
 st.sidebar.write(f"fiat value: {round(model.fiat_total)} USD")
 st.sidebar.write(f"deposited: {round(deposited)} USD")
 st.sidebar.write(
-    f"performance: {round(((model.fiat_total-deposited)/deposited)*100.2)}%")
+    f"performance: {round(((model.fiat_total-deposited)/deposited)*100,2)}%")
 st.sidebar.write(f"mcap_coins: {model.mcap_coins}")
 invoke = st.sidebar.button("invoke lambda function")
 if invoke:

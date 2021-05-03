@@ -65,14 +65,6 @@ All models must implement:
 
 - `banned_coins: list[string symbol]`
 
-#### Algorithm
-
-      total_handpicked = x for x in lambda weights where weights
-
-      market_pf_weight = 1 - total_handpicked
-      if weight == None:
-        weight == market_pf_weight
-
 #### Links
 
 - https://cs.stackexchange.com/questions/80798/portfolio-rebalancing-algorithm

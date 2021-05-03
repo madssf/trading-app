@@ -30,7 +30,7 @@ python monitor.py
 All models must implement:
 
         @abstractmethod
-        def get_trade_instructions(portfolio, rules, prices):
+        def instruct(portfolio, rules, prices):
           # check portfolio and prices against rules
           # return None if trading condition not met
           # else: return a list of valid trades to perform

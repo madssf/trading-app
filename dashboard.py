@@ -27,11 +27,13 @@ for amt in sheets['deposits']['USD']:
 
 st.sidebar.title('options')
 st.sidebar.subheader('assets')
-st.sidebar.write(f"fiat value: {round(model.fiat_total)} USD")
+st.sidebar.write(f"fiat value: {round(model.get_fiat_total())} USD")
 st.sidebar.write(f"deposited: {round(deposited)} USD")
 st.sidebar.write(
     f"performance: {round(((model.fiat_total-deposited)/deposited)*100,2)}%")
 st.sidebar.write(f"mcap_coins: {model.mcap_coins}")
+st.sidebar.write(f"dynamic_mcap: {model.dynamic_mcap}")
+
 invoke = st.sidebar.button("invoke lambda function")
 if invoke:
     event = {"source": "dashboard"}
@@ -45,7 +47,6 @@ st.subheader('assets')
 if instructions:
     st.sidebar.write("trade condition detected")
     st.sidebar.write(instructions)
-
 
 assets_df = pd.DataFrame(assets).transpose()
 fiat_assets = assets_df['tot']*assets_df['new_price']
@@ -71,17 +72,6 @@ gains.columns = ['% change']
 pf['% change'] = gains.astype(float)*100
 pf['avg_price'] = assets_df['avg_price'].astype(float)
 pf['new_price'] = assets_df['new_price'].astype(float)
-pf['% 1h'] = None
-pf['% 24h'] = None
-pf['% 7d'] = None
-for element in cmc_market_data['data']:
-    if element['symbol'] in pf.index.values:
-        pf['% 1h'][element['symbol']] = round(
-            float(element['quote']['USD']['percent_change_1h']), 3)
-        pf['% 24h'][element['symbol']] = round(float(
-            element['quote']['USD']['percent_change_24h']), 3)
-        pf['% 7d'][element['symbol']] = round(float(
-            element['quote']['USD']['percent_change_7d']), 3)
 
 
 # daily % change, total dollar value, total tokens here

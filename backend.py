@@ -84,7 +84,7 @@ def get_sheets(names):
 @st.cache
 def get_assets():
     '''
-    :returns: {coins: {tot, flex, locked, avg_price, new_price, stake_exp}}}
+    :returns: dict{coin: {tot, flex, locked, avg_price, new_price, stake_exp}}}
     '''
     data = {}
     temp = {'tot': 0, 'flex': 0, 'locked': 0,

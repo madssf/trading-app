@@ -11,7 +11,11 @@ receiver_address = config.MAIL_RECIEVER
 
 def send_mail(type, mail_content):
     if type == "trade alert":
-        subject = 'trade condition alert! | cloud.trading.app'
+        subject = 'Trade condition alert! | cloud.trading.app'
+        content = "Instructions:"+'\n'
+        for order in mail_content:
+
+            content += f"{order['side']} {order['symbol']}  {order['coins']} tokens - ({round(order['usd_amt'],2)} $)"+'\n'
     else:
         raise ValueError('unknown mail type')
     message = MIMEMultipart()
@@ -20,7 +24,7 @@ def send_mail(type, mail_content):
     # The subject line
     message['Subject'] = subject
     # The body and the attachments for the mail
-    message.attach(MIMEText(str(mail_content), 'plain'))
+    message.attach(MIMEText(str(content), 'plain'))
     # Create SMTP session for sending the mail
     session = smtplib.SMTP('smtp.gmail.com', 587)  # use gmail with port
     session.starttls()  # enable security

@@ -10,9 +10,9 @@ def main(event):
     instructions = model.instruct(
     )
     if instructions:
-        print('trade condition detected:')
-        print(instructions)
+        print('lambda_func.py - main() - trade condition detected')
         for trade in instructions:
+
             backend.place_order(trade)
     else:
         print("no trade conditon - finished executing")

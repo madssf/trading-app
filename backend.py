@@ -23,7 +23,6 @@ cmc_session = Session()
 cmc_session.headers.update(cmc_headers)
 
 
-@st.cache
 def cmc_quotes_latest(symbols):
     '''
     :symbols: list[string]
@@ -53,6 +52,7 @@ def cmc_market_data():
         return(e)
 
 
+@st.cache
 def get_sheet_by_name(name):
     with open('sheets_config.json') as source:
         info = json.load(source)
@@ -74,7 +74,6 @@ def get_sheets(names):
     return {name: get_sheet_by_name(name) for name in names}
 
 
-@st.cache
 def get_assets():
     '''
     :returns: {coins: {tot, flex, locked, avg_price, new_price, stake_exp}}}

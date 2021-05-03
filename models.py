@@ -111,7 +111,7 @@ class FundamentalsRebalancingStakingHODL(Model):
         self.balanced_fiat = weights
         return weights
 
-    def generate_instructions(self, assets, params, market_data):
+    def generate_instructions(self):
         # return false if cant trade due to staked
         diff = self.get_diff_matrix()
         # use diff matrix to generate instructions
@@ -123,7 +123,9 @@ class FundamentalsRebalancingStakingHODL(Model):
             try:
 
                 if diff[element] > self.params['min_trade_fiat'][0]:
-                    liquid = assets[element]['tot'] - assets[element]['locked']
+
+                    liquid = self.assets[element]['tot'] - \
+                        self.assets[element]['locked']
                     if liquid > self.params['min_trade_fiat'][0]:
                         if diff[element] > 0:
                             type = 'sell'
@@ -132,7 +134,7 @@ class FundamentalsRebalancingStakingHODL(Model):
                         data.append([element, diff[element], type])
                     else:
                         data.append(
-                            [element, diff[element], "wait for unstake"])
+                            [element, diff[element], "sell - wait for unstake"])
             except(KeyError):
                 data.append([element], diff[element])
         return data
@@ -149,8 +151,7 @@ class FundamentalsRebalancingStakingHODL(Model):
         self.gains = gains
         for symbol in gains:
             if gains[symbol] > self.params['profit_pct'][0]:
-                print("TRADE CONDITION DETECTED - GENERATING INSTRUCTIONS")
-                return self.generate_instructions(self.assets, self.params, self.market_data)
+                return self.generate_instructions()
         return None
 
     def get_gains(self):

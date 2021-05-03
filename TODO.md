@@ -1,22 +1,46 @@
 # TODO:
 
-- for testing: change assets
-- logging to g-sheets
+## Email backend
+
+- stop mail from spamming
+
+## Dashboard functionality
+
 - control scheduler from dashboard
-- cache on dashboard but not lambda func
-- error handling requests
-- check valid input from g-sheets when constructing models
-- email-notification when trade_instructions = True
-- handle unstaking not triggering invalid sales
-- handle market crash (resetting avg_prices)
-- handle asset in assets[avg] but not in balanced portfolio
-  - sell?
-- sorting of staked
+- pefomrance vs btc etc
 - get staked apr and do some calc
 - show daily % gain and more data on dashboard
 - watchlist
 - general market analysis, fundamentals
-- better readme instructions
-- simulate different strategies and parameters
+
+## Simulation
+
+- for testing: change assets
+
+## G sheets integration
+
+- logging to g-sheets
+- sorting of staked in g-sheets
+
+## backend
+
+- cache on dashboard but not lambda func
+- error handling requests (cmc)
+  - passing ['data] from cmc_market_data
+- check valid input from g-sheets when constructing models
+- handle asset in assets[avg] but not in balanced portfolio
+  - sell?
+
+## models.py
+
 - merge model with MCAP model
   - weighted as param True/False
+
+## trade_instructions
+
+- fix buy orders, check available usdt
+- handle market crash (resetting avg_prices)
+
+## other
+
+- better readme instructions

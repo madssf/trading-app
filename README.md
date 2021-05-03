@@ -9,14 +9,15 @@ source /Users/mads/.pyenv/versions/trading-app/bin/activate
 - install requirements:
   `pip install -r requirements.txt`
 - make a file called config.py - use config_template.py
+- set up google sheets (instructions unclear)
 
-## dashboard.py
+## running the dashboard
 
-streamlit run dashboard.py
+    streamlit run dashboard.py
 
-## monitor
+## running the scheduler
 
-python monitor.py
+    python scheduler.py
 
 ## How it works
 

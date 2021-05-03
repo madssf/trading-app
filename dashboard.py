@@ -64,23 +64,39 @@ fig = px.bar(diff_df)
 st.plotly_chart(fig)
 
 
-diffs = model.token_diff()
+pf = model.token_diff()
 gains = pd.DataFrame(model.get_gains(), index=[
                      0]).transpose()
 gains.columns = ['% change']
-diffs['% change'] = gains.astype(float)*100
-diffs['avg_price'] = assets_df['avg_price'].astype(float)
-diffs['new_price'] = assets_df['new_price'].astype(float)
+pf['% change'] = gains.astype(float)*100
+pf['avg_price'] = assets_df['avg_price'].astype(float)
+pf['new_price'] = assets_df['new_price'].astype(float)
+pf['% 1h'] = None
+pf['% 24h'] = None
+pf['% 7d'] = None
+for element in cmc_market_data['data']:
+    if element['symbol'] in pf.index.values:
+        pf['% 1h'][element['symbol']] = round(
+            float(element['quote']['USD']['percent_change_1h']), 3)
+        pf['% 24h'][element['symbol']] = round(float(
+            element['quote']['USD']['percent_change_24h']), 3)
+        pf['% 7d'][element['symbol']] = round(float(
+            element['quote']['USD']['percent_change_7d']), 3)
 
-st.write(diffs)
 
-st.write('model_inputs')
-st.write(sheets["model_inputs"].transpose())
-st.write('staked')
+# daily % change, total dollar value, total tokens here
+st.subheader('portfolio details')
+st.write(pf)
+
+st.subheader('model_inputs')
+model_inputs_df = sheets["model_inputs"].transpose()
+model_inputs_df.columns = ['parameter']
+st.write(model_inputs_df)
+st.subheader('staked')
 st.write(sheets["staked"])
 # st.write('trade_log')
 # st.write(sheets["trade_log"])
 # st.write('order_log')
 # st.write(sheets["order_log"])
-st.write('deposits')
+st.subheader('deposits')
 st.write(sheets["deposits"])

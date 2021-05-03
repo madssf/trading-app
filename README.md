@@ -1,6 +1,8 @@
 # trading-app
 
-source /Users/mads/.pyenv/versions/trading-app/bin/activate
+#### Activating virtualenv (pyenv)
+
+    source /Users/mads/.pyenv/versions/trading-app/bin/activate
 
 ## Installation - Start here!
 

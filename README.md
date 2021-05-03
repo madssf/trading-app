@@ -13,15 +13,15 @@
 - make a file called config.py - use config_template.py
 - set up google sheets (instructions unclear)
 
-## running the dashboard
+### running the dashboard
 
     streamlit run dashboard.py
 
-## running the scheduler
+### running the scheduler
 
     python scheduler.py
 
-## How it works
+### How it works
 
 1. Choose a model and set input parameters
 2. Wait for the model to signal that a trade condition is met

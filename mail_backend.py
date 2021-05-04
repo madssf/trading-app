@@ -15,7 +15,7 @@ def send_mail(type, mail_content):
         content = "Instructions:"+'\n'
         for order in mail_content:
 
-            content += f"{order['side']} {order['symbol']}  {order['coins']} tokens - ({round(order['usd_amt'],2)} $)"+'\n'
+            content += f"{order['side']}: {order['symbol']}  - {order['coins']} tokens ({round(order['usd_amt'],2)} $)"+'\n'
     else:
         raise ValueError('unknown mail type')
     message = MIMEMultipart()
@@ -34,4 +34,4 @@ def send_mail(type, mail_content):
     session.sendmail(sender_address, receiver_address, text)
     session.quit()
     print(
-        f'sent mail! | from: {sender_address} | to: {receiver_address} | subject: {subject}| content: {mail_content}|')
+        f'mail sent - from: {sender_address} | to: {receiver_address} | subject: {subject} | content: {mail_content}|')

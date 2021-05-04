@@ -1,14 +1,17 @@
 import models
 import backend
 import mail_backend
+from datetime import datetime
 
 
-def main(market_data):
+def main(context, market_data):
 
     assets = backend.get_assets()
     model = models.FundamentalsRebalancingStakingHODL(
         assets, backend.get_sheet_by_name("model_inputs"), market_data)
     instructions = model.instruct()
+    backend.write_to_sheet(
+        "invoke_log", [str(datetime.now()), context['source'], str(instructions)])
     if instructions:
         print('lambda_func.py - main() - trade condition detected')
         mail_backend.send_mail("trade alert", instructions)
@@ -28,4 +31,4 @@ def lambda_handler(context, event):
     :param event: backend.cmc_market_data()
     '''
     print(f"lambda_func.py invoked | context: {context}")
-    main(event)
+    main(context, event)

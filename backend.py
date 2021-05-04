@@ -9,6 +9,8 @@ import config
 import streamlit as st
 from copy import copy
 
+sheets_client = pygsheets.authorize(service_account_file='sheets_config.json')
+
 cmc_url_base = "https://pro-api.coinmarketcap.com/v1/"
 quotes_latest = "cryptocurrency/quotes/latest"
 listings_latest = "cryptocurrency/listings/latest"
@@ -41,7 +43,7 @@ def cmc_quotes_latest(symbols):
         data = json.loads(response.text)
         if "data" not in data.keys():
             raise ValueError(f"data not in cmc-request: {data}")
-        return(data)
+        return(data['data'])
     except (ConnectionError, Timeout, TooManyRedirects) as e:
         return(e)
 
@@ -53,7 +55,7 @@ def cmc_market_data():
         data = json.loads(response.text)
         if "data" not in data.keys():
             raise ValueError(f"data not in cmc-request: {data}")
-        return(data)
+        return(data['data'])
 
     except (ConnectionError, Timeout, TooManyRedirects) as e:
         return(e)
@@ -61,18 +63,9 @@ def cmc_market_data():
 
 @st.cache
 def get_sheet_by_name(name):
-    with open('sheets_config.json') as source:
-        info = json.load(source)
 
-    credentials = service_account.Credentials.from_service_account_info(info)
-
-    client = pygsheets.authorize(service_account_file='sheets_config.json')
-
-    spreadsheet_url = "https://docs.google.com/spreadsheets/d/1ckQ3JaGAsowqNDCp_DrqQxqfvpPrFvY3TpYrtewrwEE/edit?usp=sharing"
-    sheet_data = client.sheet.get(
+    sheet = sheets_client.open_by_key(
         '1ckQ3JaGAsowqNDCp_DrqQxqfvpPrFvY3TpYrtewrwEE')
-
-    sheet = client.open_by_key('1ckQ3JaGAsowqNDCp_DrqQxqfvpPrFvY3TpYrtewrwEE')
     return sheet.worksheet_by_title(name).get_as_df()
 
 
@@ -81,7 +74,14 @@ def get_sheets(names):
     return {name: get_sheet_by_name(name) for name in names}
 
 
-@st.cache
+def write_to_sheet(name, data):
+    sheet = sheets_client.open_by_key(
+        '1ckQ3JaGAsowqNDCp_DrqQxqfvpPrFvY3TpYrtewrwEE').worksheet_by_title(name)
+    sheet.insert_rows(1, values=list(data))
+    return
+
+
+@ st.cache
 def get_assets():
     '''
     :returns: dict{coin: {tot, flex, locked, avg_price, new_price, stake_exp}}}
@@ -128,7 +128,7 @@ def get_assets():
 
         data[item]['avg_price'] = float(avgs[item])
 
-    quotes = cmc_quotes_latest([x for x in data.keys()])['data']
+    quotes = cmc_quotes_latest([x for x in data.keys()])
     for symbol in data:
         data[symbol]['new_price'] = quotes[symbol]['quote']['USD']['price']
 

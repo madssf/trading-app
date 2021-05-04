@@ -4,7 +4,7 @@ import lambda_func
 from tqdm import tqdm
 from backend import cmc_market_data
 
-INTERVAL = 30*60
+INTERVAL = 15*60
 
 
 while True:

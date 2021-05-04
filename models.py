@@ -3,7 +3,6 @@ from backend import cmc_market_data
 import pandas as pd
 import math
 from abc import ABC, abstractmethod
-import copy
 
 
 class Model(ABC):
@@ -106,13 +105,25 @@ class FundamentalsRebalancingStakingHODL(Model):
                 weights[symbol] = self.fraction
                 banned_coins.append(symbol)
                 lots_open -= 1
+
+        checked = []
         for coin in self.market_data:
             symbol = coin['symbol']
+            mcapsize = coin['quote']['USD']['market_cap']
             if lots_open < 1:
                 break
             if symbol not in banned_coins:
+                # missing coin, see if we have an almost as good coin already
+                if symbol not in self.assets.keys():
+                    for next_coin in self.market_data:
+                        next_symbol = next_coin['symbol']
+                        if next_symbol not in checked and next_symbol not in banned_coins and next_symbol != symbol and next_symbol in self.assets.keys():
+                            if next_coin['quote']['USD']['market_cap'] > 1-self.params['wiggle'][0] * mcapsize:
+                                symbol = next_symbol
+                                break
                 weights[symbol] = self.fraction
                 lots_open -= 1
+            checked.append(symbol)
         self.weights = weights
         for weight in weights:
             weights[weight] = weights[weight]*self.fiat_total
@@ -226,8 +237,10 @@ class FundamentalsRebalancingStakingHODL(Model):
             usd_amt -= diff_fiat
         return instructions
 
-    # checking if gain on any coin > rules['profit_pct']
+    # checking if gain on any coin > rules['profit_pct'] or if free usd to trade for
     def instruct(self):
+        if self.fiat_total > self.params['min_trade_fiat'][0]:
+            return self.generate_instructions()
         for symbol in self.gains:
             if self.gains[symbol] > self.params['profit_pct'][0] and self.diff_matrix[symbol] > self.params['min_trade_fiat'][0]:
                 return self.generate_instructions()

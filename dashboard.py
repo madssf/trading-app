@@ -9,17 +9,24 @@ import plotly.graph_objects as go
 from plotly import tools
 import plotly.offline as py
 import plotly.express as px
+
 # getting backend and model instructions
 # "watchlist", "deposits", "trade_log", "order_log"
 sheet_names = ["curr_pf", "model_inputs", "staked", "deposits"]
-sheets = backend.get_sheets(sheet_names)
-assets = backend.get_assets()
-cmc_market_data = backend.cmc_market_data()
-model = models.FundamentalsRebalancingStakingHODL(
-    assets, sheets['model_inputs'], cmc_market_data)
 
-instructions = model.instruct()
 
+@st.cache
+def cacheable_backend():
+    sheets = backend.get_sheets(sheet_names)
+    assets = backend.get_assets()
+    cmc_market_data = backend.cmc_market_data()
+    model = models.FundamentalsRebalancingStakingHODL(
+        assets, sheets['model_inputs'], cmc_market_data)
+    instructions = model.instruct()
+    return sheets, assets, cmc_market_data, model, instructions
+
+
+sheets, assets, cmc_market_data, model, instructions = cacheable_backend()
 # calculating display information
 deposited = 0
 for data in cmc_market_data:
@@ -46,9 +53,9 @@ st.sidebar.write(f"dynamic_mcap **{model.dynamic_mcap}**")
 
 invoke = st.sidebar.button("invoke lambda function")
 if invoke:
-    event = {"source": "dashboard"}
-    context = cmc_market_data
-    lambda_func.lambda_handler(event, context)
+    context = {"source": "dashboard"}
+    event = cmc_market_data
+    lambda_func.lambda_handler(context, event)
     invoke = False
 
 

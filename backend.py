@@ -1,12 +1,10 @@
 import json
 import pygsheets
-from google.oauth2 import service_account
 from binance.client import Client
 from requests import Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 
 import config
-import streamlit as st
 from copy import copy
 
 sheets_client = pygsheets.authorize(service_account_file='sheets_config.json')
@@ -25,12 +23,10 @@ cmc_session = Session()
 cmc_session.headers.update(cmc_headers)
 
 
-@st.cache
 def cmc_quotes_latest(symbols):
     '''
     :symbols: list[string]
     '''
-    # convert list to commaseparated string before putting in payload
     symbol_str = ""
     for symbol in symbols:
         if len(symbol_str) < 1:
@@ -48,7 +44,6 @@ def cmc_quotes_latest(symbols):
         return(e)
 
 
-@st.cache
 def cmc_market_data():
     try:
         response = cmc_session.get(cmc_url_base+listings_latest)
@@ -61,7 +56,6 @@ def cmc_market_data():
         return(e)
 
 
-@st.cache
 def get_sheet_by_name(name):
 
     sheet = sheets_client.open_by_key(
@@ -69,7 +63,6 @@ def get_sheet_by_name(name):
     return sheet.worksheet_by_title(name).get_as_df()
 
 
-@st.cache
 def get_sheets(names):
     return {name: get_sheet_by_name(name) for name in names}
 
@@ -81,7 +74,6 @@ def write_to_sheet(name, data):
     return
 
 
-@ st.cache
 def get_assets():
     '''
     :returns: dict{coin: {tot, flex, locked, avg_price, new_price, stake_exp}}}

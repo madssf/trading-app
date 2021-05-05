@@ -29,6 +29,8 @@ def main(context, market_data):
     if prev_symbols != str(symbols) and prev_tokens != str(tokens):
         backend.write_to_sheet(
             "assets_log", [str(symbols), str(tokens), timestamp])
+    prev_instructions = backend.get_sheet_by_name(
+        "invoke_log").iloc[0]['instructions']
     backend.write_to_sheet(
         "invoke_log", [timestamp, context['source'], str(instructions)])
 
@@ -36,10 +38,8 @@ def main(context, market_data):
     if instructions:
         print('lambda_func.py - main() - trade condition detected')
         # only send mail if we get a fresh trade condition
-        prev_instructions = backend.get_sheet_by_name(
-            "invoke_log").iloc[0]['instructions']
-        if prev_instructions == "FALSE":
 
+        if prev_instructions == "FALSE":
             mail_backend.send_mail("trade alert", instructions)
         for trade in instructions:
             backend.place_order(trade)
@@ -57,4 +57,5 @@ def lambda_handler(context, event):
     :param event: backend.cmc_market_data()
     '''
     print(f"lambda_func.py invoked | context: {context}")
+
     main(context, event)

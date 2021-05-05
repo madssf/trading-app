@@ -19,24 +19,18 @@ sheet_names = ["curr_pf", "model_inputs", "staked",
                "deposits", "invoke_log", 'assets_log']
 
 
-@st.cache
-def cacheable_backend():
-    sheets = backend.get_sheets(sheet_names)
+sheets = backend.get_sheets(sheet_names)
 
-    assets = backend.get_assets()
-    cmc_market_data = backend.cmc_market_data()
-    now = datetime.now().strftime("%H:%M:%S")
-    model = models.FundamentalsRebalancingStakingHODL(
-        assets, sheets['model_inputs'], cmc_market_data)
-    return model, sheets, assets, cmc_market_data, now
+assets = backend.get_assets()
+cmc_market_data = backend.cmc_market_data()
+now = datetime.now().strftime("%H:%M:%S")
+model = models.FundamentalsRebalancingStakingHODL(
+    assets, sheets['model_inputs'], cmc_market_data)
 
 
-@st.cache
 def get_historic_prices(symbols, since):
     return backend.get_historical_prices(symbols, since)
 
-
-model, sheets, assets, cmc_market_data, now = cacheable_backend()
 
 instructions = model.instruct()
 

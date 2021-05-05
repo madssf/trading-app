@@ -1,12 +1,12 @@
 import smtplib
-import config
+import streamlit as st
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # The mail addresses and password
-sender_address = f'{config.GMAIL_SENDER}@gmail.com'
-sender_pass = config.GMAIL_SENDER_PW
-receiver_address = config.MAIL_RECIEVER
+sender_address = f'{st.secrets["GMAIL_SENDER"]}@gmail.com'
+sender_pass = st.secrets['GMAIL_SENDER_PW']
+receiver_address = st.secrets['MAIL_RECIEVER']
 
 
 def send_mail(type, mail_content):

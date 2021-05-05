@@ -3,12 +3,19 @@ import pygsheets
 from binance.client import Client
 from requests import Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
-
-import config
+from google.oauth2 import service_account
+import streamlit as st
 from copy import copy
 
-sheets_client = pygsheets.authorize(service_account_file='sheets_config.json')
-client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY)
+service_acc = st.secrets['SERVICE_ACC']
+SCOPES = ('https://www.googleapis.com/auth/spreadsheets',
+          'https://www.googleapis.com/auth/drive')
+creds = service_account.Credentials.from_service_account_info(
+    service_acc, scopes=SCOPES)
+
+sheets_client = pygsheets.authorize(custom_credentials=creds)
+client = Client(st.secrets['BINANCE_API_KEY'],
+                st.secrets['BINANCE_SECRET_KEY'])
 
 cmc_url_base = "https://pro-api.coinmarketcap.com/v1/"
 quotes_latest = "cryptocurrency/quotes/latest"
@@ -17,7 +24,7 @@ listings_latest = "cryptocurrency/listings/latest"
 
 cmc_headers = {
     'Accepts': 'application/json',
-    'X-CMC_PRO_API_KEY': config.CMC_KEY,
+    'X-CMC_PRO_API_KEY': st.secrets['CMC_KEY'],
 }
 
 cmc_session = Session()
@@ -60,7 +67,7 @@ def cmc_market_data():
 def get_sheet_by_name(name):
 
     sheet = sheets_client.open_by_key(
-        config.SHEETS_ID)
+        st.secrets['SHEETS_ID'])
     return sheet.worksheet_by_title(name).get_as_df()
 
 
@@ -70,7 +77,7 @@ def get_sheets(names):
 
 def write_to_sheet(name, data):
     sheet = sheets_client.open_by_key(
-        config.SHEETS_ID).worksheet_by_title(name)
+        st.secrets['SHEETS_ID']).worksheet_by_title(name)
     sheet.insert_rows(1, values=list(data))
     return
 

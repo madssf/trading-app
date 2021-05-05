@@ -22,7 +22,8 @@ sheets = backend.get_sheets(sheet_names)
 
 assets = backend.get_assets()
 cmc_market_data = backend.cmc_market_data()
-now = datetime.now().strftime("%H:%M:%S")
+now = datetime.now() + timedelta(hours=2)
+now = now.strftime("%H:%M:%S")
 model = models.FundamentalsRebalancingStakingHODL(
     assets, sheets['model_inputs'], cmc_market_data)
 

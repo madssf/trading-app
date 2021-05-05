@@ -1,4 +1,3 @@
-from pandas.core.algorithms import diff
 import streamlit as st
 import pandas as pd
 import backend
@@ -52,15 +51,9 @@ btc_perf = round(100*(btc_price-btc_avg)/btc_avg, 2)
 
 
 # SIDEBAR
+st.sidebar.subheader('info')
 st.sidebar.write(f'updated **{now}**')
 st.sidebar.write(f"balance **{round(model.get_fiat_total())} $**")
-invoke = st.sidebar.button("invoke")
-if invoke:
-    context = {"source": "dashboard"}
-    event = cmc_market_data
-    lambda_func.lambda_handler(context, event)
-    invoke = False
-
 st.sidebar.write(f"performance ** {perf} % **")
 st.sidebar.write(f"btc perf ** {btc_perf} % **")
 st.sidebar.write(f"diff ** {round(perf - btc_perf, 2)} % **")
@@ -68,7 +61,18 @@ st.sidebar.subheader('model')
 st.sidebar.write(f"mcap_coins **{model.mcap_coins}**")
 st.sidebar.write(f"dynamic_mcap **{model.dynamic_mcap}**")
 st.sidebar.write(
-    f"base trade **{round(model.fiat_total*model.fraction, 3)} $**")
+    f"base trade **{round(model.fiat_total*model.fraction, 2)} $**")
+st.sidebar.write(
+    f"take profit **{int(sheets['model_inputs']['profit_pct'][0]*100)} %**")
+st.sidebar.write(
+    f"min trade amt **{sheets['model_inputs']['min_trade_fiat'][0]} $**")
+invoke = st.sidebar.button("invoke")
+if invoke:
+    context = {"source": "dashboard"}
+    event = cmc_market_data
+    lambda_func.lambda_handler(context, event)
+    invoke = False
+
 if instructions:
     st.sidebar.write("trade condition detected")
     st.sidebar.write(instructions)
@@ -106,7 +110,6 @@ st.plotly_chart(fig)
 
 # horizontal diffs
 diffs_df = model.token_diff()
-diffs_df['fiat_diff'] = diff_df
 st.write(diffs_df.transpose())
 
 # performance and market data
@@ -119,11 +122,12 @@ market_df = {}
 for element in pf_market:
     market_df[element] = pf_market[element]['quote']['USD']
 market_df = pd.DataFrame(market_df).transpose().drop(
-    columns=['last_updated', 'market_cap', 'volume_24h', 'percent_change_60d'])
+    columns=['last_updated', 'market_cap', 'volume_24h', 'percent_change_30d', 'percent_change_60d'])
 market_df = market_df.apply(pd.to_numeric)
-market_df.columns = ["price", "%1h", "%24h", "%7d", "%30d", "%90d"]
+market_df.columns = ["price", "%1h", "%24h", "%7d", "%90d"]
 # daily % change, total dollar value, total tokens here
 market_df.insert(loc=1, column='% gain', value=perf_df['% gain'])
+market_df.insert(loc=2, column='$ diff', value=diff_df)
 st.subheader('market data')
 st.write(market_df)
 

@@ -8,6 +8,7 @@ import config
 from copy import copy
 
 sheets_client = pygsheets.authorize(service_account_file='sheets_config.json')
+client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY)
 
 cmc_url_base = "https://pro-api.coinmarketcap.com/v1/"
 quotes_latest = "cryptocurrency/quotes/latest"
@@ -59,7 +60,7 @@ def cmc_market_data():
 def get_sheet_by_name(name):
 
     sheet = sheets_client.open_by_key(
-        '1ckQ3JaGAsowqNDCp_DrqQxqfvpPrFvY3TpYrtewrwEE')
+        config.SHEETS_ID)
     return sheet.worksheet_by_title(name).get_as_df()
 
 
@@ -69,7 +70,7 @@ def get_sheets(names):
 
 def write_to_sheet(name, data):
     sheet = sheets_client.open_by_key(
-        '1ckQ3JaGAsowqNDCp_DrqQxqfvpPrFvY3TpYrtewrwEE').worksheet_by_title(name)
+        config.SHEETS_ID).worksheet_by_title(name)
     sheet.insert_rows(1, values=list(data))
     return
 
@@ -79,10 +80,7 @@ def get_assets():
     :returns: dict{coin: {tot, flex, locked, avg_price, new_price, stake_exp}}}
     '''
     data = {}
-    temp = {'tot': 0, 'flex': 0, 'locked': 0,
-            'avg_price': 0, 'new_price': 0, 'stake_exp': -1}
     # get binance api account
-    client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY)
     balances = client.get_account()['balances']
     for item in balances:
         flexed = False
@@ -96,7 +94,8 @@ def get_assets():
             if symbol == "BETH":
                 locked = True
                 symbol = "ETH"
-            data[symbol] = data.get(symbol, copy(temp))
+            data[symbol] = data.get(symbol, {'tot': 0, 'flex': 0, 'locked': 0,
+                                             'avg_price': 0, 'new_price': 0, 'stake_exp': -1})
             data[symbol]['tot'] += amt
             if locked:
                 data[symbol]['locked'] += amt
@@ -106,7 +105,8 @@ def get_assets():
     for symbol in staked:
         coin = staked[symbol]
         if coin['symbol'] not in data.keys():
-            data[coin['symbol']] = temp
+            data[coin['symbol']] = {'tot': 0, 'flex': 0, 'locked': 0,
+                                    'avg_price': 0, 'new_price': 0, 'stake_exp': -1}
             data[coin['symbol']]['locked'] = coin['amount']
         else:
             data[coin['symbol']]['locked'] += coin['amount']
@@ -130,3 +130,15 @@ def get_assets():
 def place_order(trade):
     print(f"place order not implemented: {trade}")
     return
+
+
+def get_historical_prices(assets, since, interval=Client.KLINE_INTERVAL_1HOUR):
+    data = {}
+    for symbol in assets:
+        # any stablecoin!
+        if symbol == 'USDT' or symbol == "TLM":
+            pass
+        else:
+            data[symbol] = client.get_historical_klines(
+                f"{symbol}USDT", interval, since)
+    return data

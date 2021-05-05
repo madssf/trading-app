@@ -39,9 +39,11 @@ class FundamentalsRebalancingStakingHODL(Model):
                 gains[symbol] = 0
         self.gains = gains
         fiat_temp = 0
+        print(assets)
         for asset in assets:
             fiat_temp += assets[asset]['new_price'] * assets[asset]['tot']
         self.fiat_total = fiat_temp
+
         self.balanced_pf = self.balanced_portfolio()
         self.get_diff_matrix()
     # overriding abstract method
@@ -165,7 +167,7 @@ class FundamentalsRebalancingStakingHODL(Model):
                     instructions.append(
                         {'symbol': element, 'coins': round(float(token_diff[element][0]), 2), 'usd_amt': diff[element], 'side': "SELL"})
                     usd_amt += diff[element]
-        # check usd amount doing buys
+        # check usd amount before doing buys
         if usd_amt < min_fiat_trade:
             return False
 
@@ -174,22 +176,22 @@ class FundamentalsRebalancingStakingHODL(Model):
             diff = -self.diff_matrix[symbol]
             if diff > min_fiat_trade and diff < usd_amt:
                 instructions.append({'symbol': symbol, 'coins': round(
-                    float(token_diff[symbol][0]), 2), 'usd_amt': diff[symbol], 'side': "BUY"})
-                usd_amt += diff[symbol]
+                    float(token_diff[symbol][0]), 2), 'usd_amt': diff, 'side': "BUY"})
+                usd_amt += diff
             elif diff > usd_amt:
                 instructions.append({'symbol': symbol, 'coins': round(
                     usd_amt/self.assets[symbol]['new_price']), 'usd_amt': usd_amt, 'side': "BUY"})
                 return instructions
         # prio 2: coins that we don't currently have but need
-        diff = self.diff_matrix
+        diff_m = self.diff_matrix
         for element in self.market_data:
             if element['symbol'] in new_coins.keys():
-                diff_fiat = diff[element['symbol']]
+                diff_fiat = diff_m[element['symbol']]
                 price = element['quote']['USD']['price']
                 new_coins[element['symbol']] = [round(
                     float(diff_fiat/price)*-1, 4), price]
         for element in new_coins:
-            diff_fiat = diff[element] * -1
+            diff_fiat = diff_m[element] * -1
             if diff_fiat < min_fiat_trade or usd_amt < min_fiat_trade:
                 return instructions
             if usd_amt < diff_fiat:

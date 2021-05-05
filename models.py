@@ -39,7 +39,6 @@ class FundamentalsRebalancingStakingHODL(Model):
                 gains[symbol] = 0
         self.gains = gains
         fiat_temp = 0
-        print(assets)
         for asset in assets:
             fiat_temp += assets[asset]['new_price'] * assets[asset]['tot']
         self.fiat_total = fiat_temp

@@ -194,7 +194,8 @@ for tstamp in merged:
                         float(ass_dict[matches[tstamp]][coin])
         except (KeyError):
             merged[tstamp][coin] = 0
-
+merged = dict(zip([datetime.utcfromtimestamp(x/1000)
+              for x in merged.keys()], list(merged.values())))
 fig = px.area(pd.DataFrame(merged).transpose())
 st.plotly_chart(fig)
 

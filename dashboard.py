@@ -4,13 +4,9 @@ import backend
 import lambda_func
 import models
 from datetime import datetime
-from datetime import timedelta
+import pytz
 import re
-import time
-
-import plotly.graph_objects as go
-from plotly import tools
-import plotly.offline as py
+from dateutil.tz import tzutc
 import plotly.express as px
 
 # getting backend and model instructions
@@ -23,7 +19,7 @@ sheets = backend.get_sheets(sheet_names)
 
 assets = backend.get_assets()
 cmc_market_data = backend.cmc_market_data()
-now = datetime.now() + timedelta(hours=1+time.timezone/3600)
+now = pytz.timezone(st.secrets["TIMEZONE"]).localize(datetime.now())
 now = now.strftime("%H:%M:%S")
 model = models.FundamentalsRebalancingStakingHODL(
     assets, sheets['model_inputs'], cmc_market_data)

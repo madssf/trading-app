@@ -19,8 +19,7 @@ sheets = backend.get_sheets(sheet_names)
 
 assets = backend.get_assets()
 cmc_market_data = backend.cmc_market_data()
-now = pytz.timezone(st.secrets["TIMEZONE"]).localize(datetime.now())
-now = now.strftime("%H:%M:%S")
+now = datetime.now(pytz.timezone(st.secrets["TIMEZONE"])).strftime("%H:%M:%S")
 model = models.FundamentalsRebalancingStakingHODL(
     assets, sheets['model_inputs'], cmc_market_data)
 

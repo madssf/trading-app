@@ -2,16 +2,11 @@ import models
 import backend
 import mail_backend
 from datetime import datetime
-from datetime import timedelta
+import pytz
 
 
 def main(context, market_data):
-    timestamp = datetime.now()
-    try:
-        timestamp += timedelta(hours=context['timeoffset'])
-    except(KeyError) as e:
-        pass
-    timestamp = timestamp.strftime("%m/%d/%Y, %H:%M:%S")
+    timestamp = datetime.now(pytz.timezone("Europe/Berlin"))
     assets = backend.get_assets()
     model = models.FundamentalsRebalancingStakingHODL(
         assets, backend.get_sheet_by_name("model_inputs"), market_data)

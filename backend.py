@@ -142,9 +142,9 @@ def get_historical_prices(assets, since, interval=Client.KLINE_INTERVAL_1HOUR):
     data = {}
     for symbol in assets:
         # any stablecoin!
-        # if symbol == 'USDT' or symbol == "TLM":
-        #    pass
-        # else:
-        data[symbol] = client.get_historical_klines(
-            f"{symbol}USDT", interval, since)
+        if symbol == 'USDT' or symbol == "TLM":
+            pass
+        else:
+            data[symbol] = client.get_historical_klines(
+                f"{symbol}USDT", interval, since)
     return data

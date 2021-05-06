@@ -1,4 +1,3 @@
-from pandas.core import base
 from backend import cmc_market_data
 import pandas as pd
 import math
@@ -45,7 +44,6 @@ class FundamentalsRebalancingStakingHODL(Model):
 
         self.balanced_pf = self.balanced_portfolio()
         self.get_diff_matrix()
-    # overriding abstract method
 
     def token_diff(self):
         data = {}

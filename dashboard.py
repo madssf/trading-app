@@ -196,6 +196,8 @@ for tstamp in merged:
 merged = dict(zip([datetime.utcfromtimestamp(x/1000)
               for x in merged.keys()], list(merged.values())))
 fig = px.area(pd.DataFrame(merged).transpose())
+fig.update_yaxes(title='$ total')
+fig.update_xaxes(title='coins')
 st.plotly_chart(fig)
 
 

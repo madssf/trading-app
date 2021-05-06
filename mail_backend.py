@@ -9,19 +9,15 @@ sender_pass = st.secrets['GMAIL_SENDER_PW']
 receiver_address = st.secrets['MAIL_RECIEVER']
 
 
-def send_mail(type, mail_content):
-    if type == "trade alert":
-        subject = 'Trade condition alert! | cloud.trading.app'
-        content = "Instructions:"+'\n'
-        for order in mail_content:
+def send_mail(mail_content):
+    subject = 'Trade condition alert! | cloud.trading.app'
+    content = "Instructions:"+'\n'
+    for order in mail_content:
+        content += f"{order['side']}: {order['symbol']}  - {order['coins']} tokens ({round(order['usd_amt'],2)} $)"+'\n'
 
-            content += f"{order['side']}: {order['symbol']}  - {order['coins']} tokens ({round(order['usd_amt'],2)} $)"+'\n'
-    else:
-        raise ValueError('unknown mail type')
     message = MIMEMultipart()
     message['From'] = sender_address
     message['To'] = receiver_address
-    # The subject line
     message['Subject'] = subject
     # The body and the attachments for the mail
     message.attach(MIMEText(str(content), 'plain'))
@@ -34,4 +30,4 @@ def send_mail(type, mail_content):
     session.sendmail(sender_address, receiver_address, text)
     session.quit()
     print(
-        f'mail sent - from: {sender_address} | to: {receiver_address} | subject: {subject} | content: {mail_content}|')
+        f'mail sent! | from: {sender_address} | to: {receiver_address} | subject: {subject} | content: {mail_content}|')

@@ -6,6 +6,7 @@ import models
 from datetime import datetime
 from datetime import timedelta
 import re
+import time
 
 import plotly.graph_objects as go
 from plotly import tools
@@ -22,7 +23,7 @@ sheets = backend.get_sheets(sheet_names)
 
 assets = backend.get_assets()
 cmc_market_data = backend.cmc_market_data()
-now = datetime.now() + timedelta(hours=2)
+now = datetime.now() + timedelta(hours=1+time.timezone/3600)
 now = now.strftime("%H:%M:%S")
 model = models.FundamentalsRebalancingStakingHODL(
     assets, sheets['model_inputs'], cmc_market_data)

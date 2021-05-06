@@ -4,3 +4,4 @@ sheets_config.json
 /__pycache__
 bot.zip
 .streamlit
+sandbox.py

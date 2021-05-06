@@ -40,9 +40,11 @@ def main(context, market_data):
         # only send mail if we get a fresh trade condition
 
         if prev_instructions == "FALSE":
-            mail_backend.send_mail("trade alert", instructions)
+            mail_backend.send_mail(instructions)
+        '''   
         for trade in instructions:
             backend.place_order(trade)
+        '''
     else:
         print("no trade conditon - finished executing")
 

@@ -12,7 +12,6 @@ SCOPES = ('https://www.googleapis.com/auth/spreadsheets',
           'https://www.googleapis.com/auth/drive')
 creds = service_account.Credentials.from_service_account_info(
     service_acc, scopes=SCOPES)
-
 sheets_client = pygsheets.authorize(custom_credentials=creds)
 client = Client(st.secrets['BINANCE_API_KEY'],
                 st.secrets['BINANCE_SECRET_KEY'])
@@ -86,7 +85,7 @@ def get_assets():
     '''
     :returns: dict{coin: {tot, flex, locked, avg_price, new_price, stake_exp}}}
     '''
-    data = {}
+    assets = {}
     # get binance api account
     balances = client.get_account()['balances']
     for item in balances:
@@ -101,51 +100,51 @@ def get_assets():
             if symbol == "BETH":
                 locked = True
                 symbol = "ETH"
-            data[symbol] = data.get(symbol, {'tot': 0, 'flex': 0, 'locked': 0,
-                                             'avg_price': 0, 'new_price': 0, 'stake_exp': -1})
-            data[symbol]['tot'] += amt
+            if symbol not in assets.keys():
+                assets[symbol] = {'tot': 0, 'flex': 0, 'locked': 0,
+                                  'avg_price': 0, 'new_price': 0, 'stake_exp': None}
+
+            assets[symbol]['tot'] += amt
             if locked:
-                data[symbol]['locked'] += amt
+                assets[symbol]['locked'] += amt
             if flexed:
-                data[symbol]['flex'] += amt
-    staked = get_sheet_by_name("staked").transpose()
-    for symbol in staked:
-        coin = staked[symbol]
-        if coin['symbol'] not in data.keys():
-            data[coin['symbol']] = {'tot': 0, 'flex': 0, 'locked': 0,
-                                    'avg_price': 0, 'new_price': 0, 'stake_exp': -1}
-            data[coin['symbol']]['locked'] = coin['amount']
+                assets[symbol]['flex'] += amt
+    # get staked from g-sheets
+    staked = get_sheet_by_name("staked")
+    for col, coin in staked.iterrows():
+        if coin['symbol'] not in assets.keys():
+            assets[coin['symbol']] = {'tot': 0, 'flex': 0, 'locked': coin['amount'],
+                                      'avg_price': 0, 'new_price': 0, 'stake_exp': None}
         else:
-            data[coin['symbol']]['locked'] += coin['amount']
-        data[coin['symbol']]['tot'] += coin['amount']
-        data[coin['symbol']]['stake_exp'] = staked[symbol]['stake_exp']
-    curr_pf = get_sheet_by_name("curr_pf").transpose()
-    avgs = {}
-    for item in curr_pf:
-        avgs[curr_pf[item]['symbol']] = curr_pf[item]['avg_price']
-    for item in avgs.keys():
-
-        data[item]['avg_price'] = float(avgs[item])
-
-    quotes = cmc_quotes_latest([x for x in data.keys()])
-    for symbol in data:
-        data[symbol]['new_price'] = quotes[symbol]['quote']['USD']['price']
-
-    return data
+            assets[coin['symbol']]['locked'] += coin['amount']
+        assets[coin['symbol']]['tot'] += coin['amount']
+        assets[coin['symbol']]['stake_exp'] = coin['stake_exp']
+    # get average prices from g-sheets
+    current_pf = get_sheet_by_name("curr_pf")
+    for col, coin in current_pf.iterrows():
+        if coin['symbol'] in assets.keys():
+            assets[coin['symbol']]['avg_price'] = float(
+                coin['avg_price'])
+    quotes = cmc_quotes_latest([x for x in assets.keys()])
+    for symbol in assets:
+        assets[symbol]['new_price'] = quotes[symbol]['quote']['USD']['price']
+    return assets
 
 
+'''
 def place_order(trade):
     print(f"place order not implemented: {trade}")
     return
+'''
 
 
 def get_historical_prices(assets, since, interval=Client.KLINE_INTERVAL_1HOUR):
     data = {}
     for symbol in assets:
         # any stablecoin!
-        if symbol == 'USDT' or symbol == "TLM":
-            pass
-        else:
-            data[symbol] = client.get_historical_klines(
-                f"{symbol}USDT", interval, since)
+        # if symbol == 'USDT' or symbol == "TLM":
+        #    pass
+        # else:
+        data[symbol] = client.get_historical_klines(
+            f"{symbol}USDT", interval, since)
     return data

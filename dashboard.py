@@ -123,12 +123,13 @@ market_df = {}
 for element in pf_market:
     market_df[element] = pf_market[element]['quote']['USD']
 market_df = pd.DataFrame(market_df).transpose().drop(
-    columns=['last_updated', 'market_cap', 'volume_24h', 'percent_change_30d', 'percent_change_60d'])
+    columns=['last_updated', 'market_cap', 'volume_24h', 'percent_change_30d', 'percent_change_60d', 'percent_change_7d'])
 market_df = market_df.apply(pd.to_numeric)
-market_df.columns = ["price", "%1h", "%24h", "%7d", "%90d"]
+market_df.columns = ["price", "%1h", "%24h", "%90d"]
 # daily % change, total dollar value, total tokens here
 market_df.insert(loc=1, column='% gain', value=perf_df['% gain'])
 market_df.insert(loc=2, column='$ diff', value=diff_df)
+market_df.insert(loc=3, column='avg price', value=assets_df['avg_price'])
 st.subheader('market data')
 st.write(market_df)
 

@@ -6,7 +6,6 @@ import models
 from datetime import datetime
 import pytz
 import re
-from dateutil.tz import tzutc
 import plotly.express as px
 
 # getting backend and model instructions

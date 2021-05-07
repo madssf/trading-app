@@ -93,10 +93,9 @@ class FundamentalsRebalancingStakingHODL(Model):
         min_trade_fiat = float(self.params['min_trade_fiat'])
         self.dynamic_mcap = math.floor(
             (min_profit * self.fiat_total * total)/min_trade_fiat)
-        mcap_coins = min(max(
-            int(self.params['min_mcap_coins'][0]), self.dynamic_mcap), int(self.params['max_mcap_coins'][0]))
-        self.mcap_coins = mcap_coins
-        self.fraction = total/mcap_coins
+        self.mcap_coins = min(max(int(self.params['min_mcap_coins'][0]), self.dynamic_mcap), int(
+            self.params['max_mcap_coins'][0]))
+        self.fraction = total/self.mcap_coins
         lots_open = self.mcap_coins
         if self.params['handpicked_mcap'][0]:
             symbols = self.params['handpicked_mcap'][0].split(',')
@@ -105,24 +104,32 @@ class FundamentalsRebalancingStakingHODL(Model):
                 banned_coins.append(symbol)
                 lots_open -= 1
 
-        checked = []
+        skipped = None
         for coin in self.market_data:
             symbol = coin['symbol']
-            mcapsize = coin['quote']['USD']['market_cap']
             if lots_open < 1:
                 break
+            # deal with skipped if we picked an alternative last iteration
+            # not a problem since this coin will be banned or already picked
+            if skipped:
+                weights[skipped] = self.fraction
+                lots_open -= 1
+                banned_coins.append(skipped)
+                skipped = None
+                continue
             if symbol not in banned_coins:
                 # missing coin, see if we have an almost as good coin already
                 if symbol not in self.assets.keys():
                     for next_coin in self.market_data:
                         next_symbol = next_coin['symbol']
-                        if next_symbol not in checked and next_symbol not in banned_coins and next_symbol != symbol and next_symbol in self.assets.keys():
-                            if next_coin['quote']['USD']['market_cap'] > 1-self.params['wiggle'][0] * mcapsize:
+                        if next_symbol not in banned_coins and next_symbol in self.assets.keys():
+                            if next_coin['quote']['USD']['market_cap'] > (1 - self.params['wiggle'][0]) * coin['quote']['USD']['market_cap']:
+                                skipped = symbol
                                 symbol = next_symbol
-                                break
+                            break
                 weights[symbol] = self.fraction
                 lots_open -= 1
-            checked.append(symbol)
+                banned_coins.append(symbol)
         self.weights = weights
         for weight in weights:
             weights[weight] = weights[weight]*self.fiat_total
@@ -160,7 +167,7 @@ class FundamentalsRebalancingStakingHODL(Model):
                     usd_amt += diff[element]
                     continue
                 # dropped coins
-                if self.diff_matrix[element] > self.assets[element]['tot']*self.assets[element]['new_price']*0.9 and liquid > min_fiat_trade:
+                if self.diff_matrix[element] > self.assets[element]['tot']*self.assets[element]['new_price']*0.9 and liquid > 10:
                     instructions.append(
                         {'symbol': element, 'coins': round(float(token_diff[element][0]), 2), 'usd_amt': diff[element], 'side': "SELL"})
                     usd_amt += diff[element]
@@ -236,12 +243,20 @@ class FundamentalsRebalancingStakingHODL(Model):
             usd_amt -= diff_fiat
         return instructions
 
-    # checking if gain on any coin > rules['profit_pct'] or if free usd to trade for
     def instruct(self):
-        if self.fiat_total > self.params['min_trade_fiat'][0]:
+        # free usd to trade for?
+        if self.assets.get(self.params['base_fiat'][0], {}).get('tot', 0) > self.params['min_trade_fiat'][0]:
             return self.generate_instructions()
+        # take profit?
         for symbol in self.gains:
             if self.gains[symbol] > self.params['profit_pct'][0] and self.diff_matrix[symbol] > self.params['min_trade_fiat'][0]:
+                return self.generate_instructions()
+        # dropped coins?
+        for element in self.assets:
+            difference = self.diff_matrix[element]
+            holding = self.assets[element]['tot'] * \
+                self.assets[element]['new_price']*0.9
+            if difference > holding:
                 return self.generate_instructions()
         return False
 

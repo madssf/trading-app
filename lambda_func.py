@@ -6,7 +6,8 @@ import pytz
 
 
 def main(context, market_data):
-    timestamp = datetime.now(pytz.timezone("Europe/Berlin"))
+    timestamp = datetime.now(pytz.timezone(
+        "Europe/Berlin")).strftime("%Y/%m/%d %H:%M:%S")
     assets = backend.get_assets()
     model = models.FundamentalsRebalancingStakingHODL(
         assets, backend.get_sheet_by_name("model_inputs"), market_data)

@@ -10,22 +10,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     '-i', "--interval",
     help='wait time between invokes in minutes, default 30 minutes', type=int)
-parser.add_argument("-t", "--timeoffset",
-                    help='hours to offset time by', type=int)
-
 
 args = parser.parse_args()
 INTERVAL = args.interval*60 if args.interval else 30*60
 
 context = {'source': f'scheduler: {platform()}'}
-if args.timeoffset:
-    context['timeoffset'] = args.timeoffset
-
 
 while True:
     startup_string = f'starting scheduled run | interval: {int(INTERVAL/60)} min'
-    if args.timeoffset:
-        startup_string += f" | time_offset: {args.timeoffset}"
     print(startup_string)
     print("getting fresh market data...")
     market_data = cmc_market_data()

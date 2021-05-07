@@ -3,11 +3,6 @@ sheets_config.json
 
 /__pycache__
 bot.zip
-.streamlit/
+.streamlit
 sandbox.py
 
-
-models_new.py
-instructions.py
-
-.gitignore

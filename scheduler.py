@@ -1,7 +1,8 @@
 
+from json.decoder import JSONDecodeError
 import time
 import lambda_func
-from backend import cmc_market_data
+from backend import cmc_market_data, write_to_sheet
 import argparse
 from tqdm import tqdm
 from platform import platform
@@ -20,10 +21,14 @@ while True:
     startup_string = f'starting scheduled run | interval: {int(INTERVAL/60)} min'
     print(startup_string)
     print("getting fresh market data...")
-    market_data = cmc_market_data()
-    print("invoking...")
-    lambda_func.lambda_handler(
-        context, market_data)
+    try:
+        market_data = cmc_market_data()
+        print("invoking...")
+        lambda_func.lambda_handler(
+            context, market_data)
+    except (JSONDecodeError) as e:
+        print(f'Error: {e}')
+
     for i in tqdm(range(INTERVAL), desc="[Ctrl+C to quit] - waiting"):
         time.sleep(1)
     print('scheduled run complete...')

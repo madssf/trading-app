@@ -138,7 +138,7 @@ def place_order(trade):
 '''
 
 
-def get_historical_prices(assets, since, interval=Client.KLINE_INTERVAL_1HOUR):
+def get_historical_prices(assets, since, interval=Client.KLINE_INTERVAL_1DAY):
     data = {}
     for symbol in assets:
         # any stablecoin!

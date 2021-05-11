@@ -2,7 +2,7 @@
 from json.decoder import JSONDecodeError
 import time
 import lambda_func
-from backend import cmc_market_data, write_to_sheet
+from backend import cmc_market_data
 import argparse
 from tqdm import tqdm
 from platform import platform

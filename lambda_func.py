@@ -1,3 +1,4 @@
+from googleapiclient.errors import HttpError
 import models
 import backend
 import mail_backend
@@ -8,27 +9,31 @@ import pytz
 def main(context, market_data):
     timestamp = datetime.now(pytz.timezone(
         "Europe/Berlin")).strftime("%m/%d/%Y, %H:%M:%S")
-    assets = backend.get_assets()
-    model = models.FundamentalsRebalancingStakingHODL(
-        assets, backend.get_sheet_by_name("model_inputs"), market_data)
-    instructions = model.instruct()
+    instructions = None
+    try:
+        assets = backend.get_assets()
+        model = models.FundamentalsRebalancingStakingHODL(
+            assets, backend.get_sheet_by_name("model_inputs"), market_data)
+        instructions = model.instruct()
 
-    symbols = list(assets.keys())
-    tokens = []
-    for element in symbols:
-        tokens.append(assets[element]['tot'])
+        symbols = list(assets.keys())
+        tokens = []
+        for element in symbols:
+            tokens.append(assets[element]['tot'])
 
-    # writing to db (g sheets)
-    prev_assets = backend.get_sheet_by_name("assets_log").iloc[0]
-    prev_symbols = prev_assets['symbols']
-    prev_tokens = prev_assets['tokens']
-    if prev_symbols != str(symbols) and prev_tokens != str(tokens):
+        # writing to db (g sheets)
+        prev_assets = backend.get_sheet_by_name("assets_log").iloc[0]
+        prev_symbols = prev_assets['symbols']
+        prev_tokens = prev_assets['tokens']
+        if prev_symbols != str(symbols) and prev_tokens != str(tokens):
+            backend.write_to_sheet(
+                "assets_log", [str(symbols), str(tokens), timestamp])
+        prev_instructions = backend.get_sheet_by_name(
+            "invoke_log").iloc[0]['instructions']
+
+    except (HttpError) as e:
         backend.write_to_sheet(
-            "assets_log", [str(symbols), str(tokens), timestamp])
-    prev_instructions = backend.get_sheet_by_name(
-        "invoke_log").iloc[0]['instructions']
-    backend.write_to_sheet(
-        "invoke_log", [timestamp, context['source'], str(instructions)])
+            "invoke_log", [timestamp, context['source'], str(e)])
 
     # checking for instructions and initating trading
     if instructions:

@@ -5,7 +5,6 @@ from requests import Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 from google.oauth2 import service_account
 import streamlit as st
-from copy import copy
 
 service_acc = st.secrets['SERVICE_ACC']
 SCOPES = ('https://www.googleapis.com/auth/spreadsheets',
@@ -64,9 +63,7 @@ def cmc_market_data():
 
 
 def get_sheet_by_name(name):
-
-    sheet = sheets_client.open_by_key(
-        st.secrets['SHEETS_ID'])
+    sheet = sheets_client.open_by_key(st.secrets['SHEETS_ID'])
     return sheet.worksheet_by_title(name).get_as_df()
 
 

@@ -1,4 +1,3 @@
-from backend import cmc_market_data
 import pandas as pd
 import math
 from abc import ABC, abstractmethod

@@ -30,24 +30,27 @@ def main(context, market_data):
                 "assets_log", [str(symbols), str(tokens), timestamp])
         prev_instructions = backend.get_sheet_by_name(
             "invoke_log").iloc[0]['instructions']
+        backend.write_to_sheet(
+            "invoke_log", [timestamp, context['source'], str(instructions)])
+
+        # checking for instructions and initating trading
+        if instructions:
+            print('lambda_func.py - main() - trade condition detected')
+            # only send mail if we get a fresh trade condition
+
+            if prev_instructions == "FALSE":
+                mail_backend.send_mail(instructions)
+            '''   
+            for trade in instructions:
+                backend.place_order(trade)
+            '''
+        else:
+            print("no trade conditon - finished executing")
 
     except (HttpError) as e:
         backend.write_to_sheet(
             "invoke_log", [timestamp, context['source'], str(e)])
-
-    # checking for instructions and initating trading
-    if instructions:
-        print('lambda_func.py - main() - trade condition detected')
-        # only send mail if we get a fresh trade condition
-
-        if prev_instructions == "FALSE":
-            mail_backend.send_mail(instructions)
-        '''   
-        for trade in instructions:
-            backend.place_order(trade)
-        '''
-    else:
-        print("no trade conditon - finished executing")
+        print(f"Error: {e}")
 
 
 if __name__ == "__main__":

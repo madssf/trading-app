@@ -13,13 +13,11 @@ certifi==2018.8.24
 cffi==1.14.3
 chardet==3.0.4
 click==7.1.2
-conda==4.3.16
 configparser==4.0.2
 constantly==15.1.0
 contextlib2==0.6.0.post1
 cookiecutter==1.7.2
 cryptography==2.6.1
-dateparser==0.7.6
 distlib==0.3.1
 enum34==1.1.6
 filelock==3.0.12
@@ -72,7 +70,6 @@ typing==3.7.4.3
 tzlocal==2.1
 ujson==2.0.3
 urllib3==1.23
-vboxapi==1.0
 virtualenv==20.4.2
 virtualenv-clone==0.5.4
 whichcraft==0.6.1

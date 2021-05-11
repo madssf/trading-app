@@ -49,6 +49,7 @@ btc_perf = round(100*(btc_price-btc_avg)/btc_avg, 2)
 # SIDEBAR
 st.sidebar.subheader('info')
 st.sidebar.write(f'updated **{now}**')
+st.sidebar.write(f"invoked: {sheets['invoke_log'].iloc[0][0][11:]}")
 st.sidebar.write(f"balance **{round(model.get_fiat_total())} $**")
 st.sidebar.write(f"performance ** {perf} % **")
 st.sidebar.write(f"btc perf ** {btc_perf} % **")
@@ -228,5 +229,4 @@ st.write(sheets["deposits"].drop(columns=['FEES', 'USD/NOK',
 
 # invoke log
 st.subheader('invoke log')
-st.write(f"invoked: {sheets['invoke_log'].iloc[0][0][11:]}")
 st.write(sheets['invoke_log'])

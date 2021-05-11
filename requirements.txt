@@ -3,7 +3,6 @@ appdirs==1.4.4
 arrow==0.17.0
 asn1crypto==0.24.0
 attrs==20.3.0
-autobahn==19.11.2
 Automat==20.2.0
 backports.functools-lru-cache==1.6.3
 bdist-mpkg==0.5.0
@@ -17,7 +16,6 @@ configparser==4.0.2
 constantly==15.1.0
 contextlib2==0.6.0.post1
 cookiecutter==1.7.2
-cryptography==2.6.1
 distlib==0.3.1
 enum34==1.1.6
 filelock==3.0.12

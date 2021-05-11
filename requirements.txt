@@ -60,7 +60,6 @@ ruamel.yaml==0.17.1
 ruamel.yaml.clib==0.2.2
 scandir==1.10.0
 scipy==0.13.0
-serverless==0.0.0
 service-identity==18.1.0
 singledispatch==3.6.1
 six==1.12.0

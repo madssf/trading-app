@@ -73,6 +73,5 @@ urllib3==1.23
 virtualenv==20.4.2
 virtualenv-clone==0.5.4
 whichcraft==0.6.1
-xattr==0.6.4
 zipp==1.2.0
 zope.interface==5.3.0

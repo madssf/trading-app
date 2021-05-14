@@ -50,6 +50,7 @@ def cmc_quotes_latest(symbols):
         return(e)
 
 
+@st.cache
 def cmc_market_data():
     try:
         response = cmc_session.get(cmc_url_base+listings_latest)
@@ -135,6 +136,7 @@ def place_order(trade):
 '''
 
 
+@st.cache
 def get_historical_prices(assets, since, interval=Client.KLINE_INTERVAL_1DAY):
     data = {}
     for symbol in assets:

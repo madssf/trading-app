@@ -1,3 +1,4 @@
+from altair.vegalite.v4.api import value
 import streamlit as st
 import pandas as pd
 import backend
@@ -11,8 +12,7 @@ import plotly.express as px
 # getting backend and model instructions
 # "watchlist", "trade_log", "order_log"
 sheet_names = ["curr_pf", "model_inputs", "staked",
-               "deposits", "invoke_log", 'assets_log']
-
+               "deposits", "invoke_log", 'assets_log', 'mcap_log']
 
 sheets = backend.get_sheets(sheet_names)
 
@@ -195,8 +195,42 @@ merged = dict(zip([datetime.utcfromtimestamp(x/1000)
 fig = px.area(pd.DataFrame(merged).transpose())
 fig.update_yaxes(title='$ total')
 fig.update_xaxes(title='coins')
+
+st.subheader('portfolio history')
 st.plotly_chart(fig)
 
+value_history = {}
+for tstamp in merged:
+    value_history[tstamp] = sum([merged[tstamp][x]
+                                 for x in merged[tstamp]])
+
+deps = []
+for deposit in deposits:
+    deps.append([datetime.strptime(deposits[deposit]['TIME'],
+                '%Y-%m-%d %H:%M:%S'), deposits[deposit]['USD']])
+
+for tstamp in value_history:
+    latest = datetime.fromtimestamp(0.0)
+    latest_tstamp = None
+    for dep in deps:
+        if dep[0] < tstamp:
+            value_history[tstamp] -= dep[1]
+            if dep[0] > latest:
+                latest = dep[0]
+                latest_tstamp = tstamp
+for dep in deps:
+    if dep[0] > latest:
+        value_history[latest_tstamp] -= dep[1]
+
+init_val = list(value_history.items())[0][1]
+value_history = {x: value_history[x]-init_val for x in value_history}
+value_history = pd.DataFrame(value_history, index=['pf gain']).transpose()
+mcap_history = sheets['mcap_log']
+
+
+fig = px.line(value_history)
+st.write('performance history')
+st.plotly_chart(fig)
 
 # staked, coin holdings
 for col in assets_df.columns:

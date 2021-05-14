@@ -1,3 +1,4 @@
+from backend import cmc_market_data
 import pandas as pd
 import math
 from abc import ABC, abstractmethod
@@ -187,7 +188,8 @@ class FundamentalsRebalancingStakingHODL(Model):
                 instructions.append({'symbol': symbol, 'coins': round(
                     usd_amt/self.assets[symbol]['new_price']), 'usd_amt': usd_amt, 'side': "BUY"})
                 return instructions
-        # prio 2: coins that we don't currently have but need
+        # getting prices for new coins
+
         diff_m = self.diff_matrix
         for element in self.market_data:
             if element['symbol'] in new_coins.keys():
@@ -195,6 +197,7 @@ class FundamentalsRebalancingStakingHODL(Model):
                 price = element['quote']['USD']['price']
                 new_coins[element['symbol']] = [round(
                     float(diff_fiat/price)*-1, 4), price]
+        '''
         for element in new_coins:
             diff_fiat = diff_m[element] * -1
             if diff_fiat < min_fiat_trade or usd_amt < min_fiat_trade:
@@ -206,15 +209,17 @@ class FundamentalsRebalancingStakingHODL(Model):
             instructions.append(
                 {'symbol': element, 'coins': new_coins[element][0], 'usd_amt': diff_fiat, 'side': "BUY"})
             usd_amt -= diff_fiat
+'''
         # prio 3: mcap_coins that we have
         mcap_diffs = {}
         for element in self.diff_matrix:
-            if element not in new_coins.keys() and element not in self.hard_hp:
+            if element not in self.hard_hp:
                 mcap_diffs[element] = self.diff_matrix[element]
             # sort mcaps
         mcap_diffs = sorted(mcap_diffs.items(), key=lambda x: x[1])
         # get list of all mcap diffs that we are missing and are viable
         mcap_diffs = list(filter(lambda x: x[1] < -min_fiat_trade, mcap_diffs))
+
         lots = math.floor(usd_amt/min_fiat_trade)
         if lots > len(mcap_diffs):
             lots = len(mcap_diffs)

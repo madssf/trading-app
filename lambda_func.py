@@ -32,7 +32,11 @@ def main(context, market_data):
             "invoke_log").iloc[0]['instructions']
         backend.write_to_sheet(
             "invoke_log", [timestamp, context['source'], str(instructions)])
+        total_mcap = 0
+        for item in market_data:
+            total_mcap += int(item['quote']['USD']['market_cap'])
 
+        backend.write_to_sheet("mcap_log", [timestamp, total_mcap])
         # checking for instructions and initating trading
         if instructions:
             print('lambda_func.py - main() - trade condition detected')

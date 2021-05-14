@@ -151,6 +151,8 @@ class FundamentalsRebalancingStakingHODL(Model):
             usd_amt = 0
 
         for element in diff:
+            if element == self.params['base_fiat'][0]:
+                continue
             # new coins
             if element not in self.assets.keys():
                 new_coins[element] = 0

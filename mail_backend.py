@@ -13,7 +13,7 @@ def send_mail(mail_content):
     subject = 'Trade condition alert! | cloud.trading.app'
     content = "Instructions:"+'\n'
     for order in mail_content:
-        content += f"{order['side']}: {order['symbol']}  - {order['coins']} tokens ({round(order['usd_amt'],2)} $)"+'\n'
+        content += f"{order['side']} | {order['symbol']} | {order['coins']} tokens ({round(order['usd_amt'],2)} $)"+'\n'
 
     message = MIMEMultipart()
     message['From'] = sender_address

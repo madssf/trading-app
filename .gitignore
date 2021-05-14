@@ -1,8 +1,20 @@
+# PYTHON
+/__pycache__
+.streamlit
+
+
+# CONFIGS, SECRETS
 config.py
 sheets_config.json
+.env
 
-/__pycache__
+# MODULES/DEPENDENCIES
+node_modules
+
+
+# DEV
+TODO.md
 bot.zip
-.streamlit
 sandbox.py
+
 

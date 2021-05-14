@@ -180,7 +180,7 @@ class FundamentalsRebalancingStakingHODL(Model):
             if diff > min_fiat_trade and diff < usd_amt:
                 instructions.append({'symbol': symbol, 'coins': round(
                     float(token_diff[symbol][0]), 2), 'usd_amt': diff, 'side': "BUY"})
-                usd_amt += diff
+                usd_amt -= diff
             elif diff > usd_amt:
                 instructions.append({'symbol': symbol, 'coins': round(
                     usd_amt/self.assets[symbol]['new_price']), 'usd_amt': usd_amt, 'side': "BUY"})

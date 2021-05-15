@@ -4,15 +4,6 @@
 
     source /Users/mads/.pyenv/versions/trading-app/bin/activate
 
-## Installation - Start here!
-
-- clone the project
-- recommended: set up a virtual environment
-- install requirements:
-  `pip install -r requirements.txt`
-- make a file called config.py - use config_template.py
-- set up google sheets (instructions unclear)
-
 ### running the dashboard
 
     streamlit run dashboard.py

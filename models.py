@@ -1,4 +1,3 @@
-from backend import cmc_market_data
 import pandas as pd
 import math
 from abc import ABC, abstractmethod
@@ -52,8 +51,8 @@ class FundamentalsRebalancingStakingHODL(Model):
             if element not in self.assets.keys():
                 pass
             else:
-                data[element] = self.diff_matrix[element] / \
-                    self.assets[element]['new_price']
+                data[element] = round(float(self.diff_matrix[element] /
+                                            self.assets[element]['new_price']), 3)
 
         data = pd.DataFrame(data, index=[0]).transpose()
         data.columns = ['token diff']
@@ -225,13 +224,25 @@ class FundamentalsRebalancingStakingHODL(Model):
             lots = len(mcap_diffs)
         tot = 0
         for i in range(lots):
+            try:
+                coins = round((usd_amt/lots) /
+                              self.assets[mcap_diffs[i][0]]['new_price'], 3)
+            except (KeyError):
+                price = 0
+                market_data = self.market_data
+                for item in market_data:
+
+                    if item['symbol'] == mcap_diffs[i][0]:
+                        price = item['quote']['USD']['price']
+                coins = round((usd_amt/lots)/price, 3)
             instructions.append({
                 'symbol': mcap_diffs[i][0],
-                'coins': round((usd_amt/lots)/self.assets[mcap_diffs[i][0]]['new_price'], 3),
+                'coins': coins,
                 'usd_amt': usd_amt/lots,
                 'side': "BUY"
             }
             )
+
             tot += usd_amt/lots
         usd_amt -= tot
 

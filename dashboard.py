@@ -1,5 +1,4 @@
-from altair.vegalite.v4.api import value
-from altair.vegalite.v4.schema.core import CalculateTransform
+from pandas.core.algorithms import diff
 import streamlit as st
 import pandas as pd
 import backend
@@ -7,8 +6,8 @@ import lambda_func
 import models
 from datetime import datetime, timedelta
 import pytz
-import re
 import plotly.express as px
+from graphs import graphs
 
 # getting backend and model instructions
 # "watchlist", "trade_log", "order_log"
@@ -33,18 +32,10 @@ instructions = model.instruct()
 
 # calculating display information
 deposited = 0
-for data in cmc_market_data:
-    if data['symbol'] == 'BTC':
-        btc_price = data['quote']['USD']['price']
-        break
-btc_avg = 0
 deposits = sheets['deposits'].transpose()
 for item in deposits:
     deposited += deposits[item]['USD']
-    btc_avg += deposits[item]['USD']*deposits[item]['BTC/USD']
-btc_avg = btc_avg/deposited
 perf = round(((model.fiat_total-deposited)/deposited)*100, 2)
-btc_perf = round(100*(btc_price-btc_avg)/btc_avg, 2)
 
 
 # SIDEBAR
@@ -53,8 +44,6 @@ st.sidebar.write(f'updated **{now}**')
 st.sidebar.write(f"invoked: **{sheets['invoke_log'].iloc[0][0][11:]}**")
 st.sidebar.write(f"balance **{round(model.get_fiat_total())} $**")
 st.sidebar.write(f"performance ** {perf} % **")
-st.sidebar.write(f"btc perf ** {btc_perf} % **")
-st.sidebar.write(f"diff ** {round(perf - btc_perf, 2)} % **")
 st.sidebar.subheader('model')
 st.sidebar.write(f"mcap_coins **{model.mcap_coins}**")
 st.sidebar.write(f"dynamic_mcap **{model.dynamic_mcap}**")
@@ -79,6 +68,7 @@ if instructions:
 # DASHBOARD STARTS HERE
 assets_df = pd.DataFrame(assets).transpose()
 
+
 # portfolio pie chart
 pf_df = pd.DataFrame(assets_df['tot']*assets_df['new_price'])
 pf_df.columns = ['$ amt']
@@ -99,16 +89,23 @@ names = []
 for element in pf_df.keys():
     names.append(element)
 diff_df = pd.DataFrame(model.get_diff_matrix(), index=['diff']).transpose()
-fig = px.bar(diff_df)
+diff_df['tokens'] = model.token_diff()
+fig = px.bar(diff_df, hover_data=[
+    'tokens'])
 fig.update_layout(showlegend=False)
 fig.update_yaxes(title='$ diff')
 fig.update_xaxes(title='coins')
 st.subheader('rebalancing')
 st.plotly_chart(fig)
 
-# horizontal diffs
-diffs_df = model.token_diff()
-st.write(diffs_df.transpose())
+
+# perf history graph
+token_hist, hist_fig = graphs.PFHistory(
+    sheets['assets_log'], get_historic_prices)
+perf_fig = graphs.PerfHistory(sheets['mcap_log'], token_hist)
+st.subheader('performance history')
+st.plotly_chart(perf_fig)
+
 
 # performance and market data
 perf_df = pd.DataFrame(model.get_gains(), index=[
@@ -125,155 +122,15 @@ market_df = market_df.apply(pd.to_numeric)
 market_df.columns = ["price", "%1h", "%24h", "%90d"]
 # daily % change, total dollar value, total tokens here
 market_df.insert(loc=1, column='% gain', value=perf_df['% gain'])
-market_df.insert(loc=2, column='$ diff', value=diff_df)
+market_df.insert(loc=2, column='$ diff', value=diff_df['diff'])
 market_df.insert(loc=3, column='avg price', value=assets_df['avg_price'])
 st.subheader('market data')
 st.write(market_df)
 
 # history
-assets_history = sheets['assets_log']
-start = assets_history['time'][len(assets_history)-1]
-# get all coins that we have ever held
-held = []
-for symbols in assets_history['symbols']:
-    symbols = symbols.split(',')
-    for item in symbols:
-        item = re.sub("[^0-9a-zA-Z]", "", item)
-        if item not in held:
-            held.append(item)
-# get binance historical prices for all coins we held:
-start = str(int(datetime.timestamp(
-    datetime.strptime(start, '%m/%d/%Y, %H:%M:%S'))*1000))
-
-# Open time, Open, High, Low, Close, Volume, Close time, Quote asset volume, Number of trades, Taker buy base asset volume, Taker buy quote asset volume, Ignore.
-hist_df = pd.DataFrame(get_historic_prices(held, start)).transpose()
-hist_timestamps = [x[6]for x in hist_df.iloc[0]]
-assets_timestamps = [int(datetime.timestamp(
-    datetime.strptime(x, '%m/%d/%Y, %H:%M:%S'))*1000) for x in assets_history['time']]
-assets_df_symbols = [x for x in assets_history['symbols']]
-assets_df_tokens = [x for x in assets_history['tokens']]
-for i in range(len(assets_df_symbols)):
-    assets_df_symbols[i] = assets_df_symbols[i].split(',')
-    assets_df_tokens[i] = assets_df_tokens[i].split(',')
-    for j in range(len(assets_df_symbols[i])):
-        assets_df_symbols[i][j] = re.sub(
-            "[^0-9a-zA-Z]", "", assets_df_symbols[i][j])
-        assets_df_tokens[i][j] = re.sub(
-            "[^0-9a-zA-Z.]", "", assets_df_tokens[i][j])
-
-matches = {}
-assets_timestamps.reverse()
-for hist_stamp in hist_timestamps:
-    closest = None
-    for asset_stamp in assets_timestamps:
-        if asset_stamp < hist_stamp:
-            matches[hist_stamp] = asset_stamp
-assets_timestamps.reverse()
-ass_dict = {}
-for i in range(len(assets_timestamps)):
-    ass_dict[assets_timestamps[i]] = {
-        assets_df_symbols[i][j]: assets_df_tokens[i][j] for j in range(len(assets_df_symbols[i]))}
-
-    # merged[coin][timestamp] = matches[timestamp]
-    # for tstamp in merged_df:
-    # find closest asset that has happened
-merged = dict.fromkeys(hist_timestamps)
-
-for tstamp in merged:
-    merged[tstamp] = dict.fromkeys(ass_dict[matches[tstamp]])
-    for coin in ass_dict[matches[tstamp]]:
-        # ass_dict[matches[tstamp]][coin]*hist_df[coin][]
-        try:
-            datapoints = hist_df.transpose()[coin]
-            for point in datapoints:
-                if point[6] == tstamp:
-                    merged[tstamp][coin] = float(point[4]) * \
-                        float(ass_dict[matches[tstamp]][coin])
-        except (KeyError):
-            merged[tstamp][coin] = 0
-merged = dict(zip([datetime.utcfromtimestamp(x/1000)
-              for x in merged.keys()], list(merged.values())))
-fig = px.area(pd.DataFrame(merged).transpose())
-fig.update_yaxes(title='$ total')
-fig.update_xaxes(title='coins')
-
 st.subheader('portfolio history')
-st.plotly_chart(fig)
+st.plotly_chart(hist_fig)
 
-value_history = {}
-for tstamp in merged:
-    value_history[tstamp] = sum([merged[tstamp][x]
-                                 for x in merged[tstamp]])
-init_deposited = list(value_history.items())[0][1]
-
-deps = []
-for deposit in deposits:
-    deps.append([datetime.strptime(deposits[deposit]['TIME'],
-                '%Y-%m-%d %H:%M:%S'), deposits[deposit]['USD']])
-first = True
-latest = datetime.fromtimestamp(0.0)
-
-for tstamp in value_history:
-    if first:
-        earliest_tstamp = tstamp
-
-        first = False
-    for dep in deps:
-        if dep[0] < tstamp:
-            value_history[tstamp] -= dep[1]
-            if tstamp > latest:
-                latest = tstamp
-
-for dep in deps:
-    if dep[0] > latest:
-        value_history[latest] -= dep[1]
-
-init_val = list(value_history.items())[0][1]
-value_history = {x: (value_history[x]-init_val) /
-                 init_deposited for x in value_history}
-value_history = pd.DataFrame(value_history, index=['pf gain']).transpose()
-mcap_log_sheet = sheets['mcap_log']
-mcap_changes = {}
-first = True
-
-
-def closest_mcap(tstamp, mcap_log_sheet):
-    dist = timedelta(3600)
-    closest_mcap = None
-    for _, row in mcap_log_sheet.iterrows():
-        row_time = datetime.strptime(row['timestamp'], '%m/%d/%Y, %H:%M:%S')
-        delta = abs(row_time - tstamp)
-        if delta < dist:
-            dist = delta
-            closest = row_time.strftime('%m/%d/%Y, %H:%M:%S')
-    for _, row in mcap_log_sheet.iterrows():
-        if row['timestamp'] == closest:
-            closest_mcap = row['mcap']
-            break
-    return closest_mcap
-
-
-mcap_history = {}
-first = True
-for tstamp, _ in value_history.iterrows():
-    mcap = closest_mcap(tstamp, mcap_log_sheet)
-    if first:
-        mcap_history[tstamp] = 1
-        first = False
-    else:
-        new_val = mcap_history[prev_tstamp] * \
-            (1+((mcap - prev_mcap)/prev_mcap))
-        mcap_history[tstamp] = new_val
-    prev_tstamp = tstamp
-    prev_mcap = mcap
-
-mcap_history = {x: mcap_history[x]-1 for x in mcap_history}
-
-value_history['mcap_pf'] = mcap_history.values()
-
-fig = px.line(value_history)
-st.subheader('performance history')
-st.plotly_chart(fig)
 
 # staked, coin holdings
 for col in assets_df.columns:
@@ -282,7 +139,7 @@ for col in assets_df.columns:
             lambda x: "" if isinstance(x, float) else x)
     else:
         assets_df[col] = assets_df[col].apply(lambda x: round(x, 2))
-st.subheader('staked')
+st.subheader('coin holdings')
 st.write(assets_df.drop(columns=['new_price', 'avg_price']))
 
 # model inputs df and balanced df

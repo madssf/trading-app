@@ -1,10 +1,11 @@
 from altair.vegalite.v4.api import value
+from altair.vegalite.v4.schema.core import CalculateTransform
 import streamlit as st
 import pandas as pd
 import backend
 import lambda_func
 import models
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import re
 import plotly.express as px
@@ -203,33 +204,75 @@ value_history = {}
 for tstamp in merged:
     value_history[tstamp] = sum([merged[tstamp][x]
                                  for x in merged[tstamp]])
+init_deposited = list(value_history.items())[0][1]
 
 deps = []
 for deposit in deposits:
     deps.append([datetime.strptime(deposits[deposit]['TIME'],
                 '%Y-%m-%d %H:%M:%S'), deposits[deposit]['USD']])
+first = True
+latest = datetime.fromtimestamp(0.0)
 
 for tstamp in value_history:
-    latest = datetime.fromtimestamp(0.0)
-    latest_tstamp = None
+    if first:
+        earliest_tstamp = tstamp
+
+        first = False
     for dep in deps:
         if dep[0] < tstamp:
             value_history[tstamp] -= dep[1]
-            if dep[0] > latest:
-                latest = dep[0]
-                latest_tstamp = tstamp
+            if tstamp > latest:
+                latest = tstamp
+
 for dep in deps:
     if dep[0] > latest:
-        value_history[latest_tstamp] -= dep[1]
+        value_history[latest] -= dep[1]
 
 init_val = list(value_history.items())[0][1]
-value_history = {x: value_history[x]-init_val for x in value_history}
+value_history = {x: (value_history[x]-init_val) /
+                 init_deposited for x in value_history}
 value_history = pd.DataFrame(value_history, index=['pf gain']).transpose()
-mcap_history = sheets['mcap_log']
+mcap_log_sheet = sheets['mcap_log']
+mcap_changes = {}
+first = True
 
+
+def closest_mcap(tstamp, mcap_log_sheet):
+    dist = timedelta(3600)
+    closest_mcap = None
+    for _, row in mcap_log_sheet.iterrows():
+        row_time = datetime.strptime(row['timestamp'], '%m/%d/%Y, %H:%M:%S')
+        delta = abs(row_time - tstamp)
+        if delta < dist:
+            dist = delta
+            closest = row_time.strftime('%m/%d/%Y, %H:%M:%S')
+    for _, row in mcap_log_sheet.iterrows():
+        if row['timestamp'] == closest:
+            closest_mcap = row['mcap']
+            break
+    return closest_mcap
+
+
+mcap_history = {}
+first = True
+for tstamp, _ in value_history.iterrows():
+    mcap = closest_mcap(tstamp, mcap_log_sheet)
+    if first:
+        mcap_history[tstamp] = 1
+        first = False
+    else:
+        new_val = mcap_history[prev_tstamp] * \
+            (1+((mcap - prev_mcap)/prev_mcap))
+        mcap_history[tstamp] = new_val
+    prev_tstamp = tstamp
+    prev_mcap = mcap
+
+mcap_history = {x: mcap_history[x]-1 for x in mcap_history}
+
+value_history['mcap_pf'] = mcap_history.values()
 
 fig = px.line(value_history)
-st.write('performance history')
+st.subheader('performance history')
 st.plotly_chart(fig)
 
 # staked, coin holdings

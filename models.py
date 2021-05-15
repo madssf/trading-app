@@ -1,6 +1,7 @@
 import pandas as pd
 import math
 from abc import ABC, abstractmethod
+import sys
 
 
 class Model(ABC):
@@ -12,21 +13,16 @@ class Model(ABC):
         return
 
 
-class FundamentalsRebalancingStakingHODL(Model):
+class McapModel(Model):
 
     def __init__(self, assets, params, market_data):
         self.assets = assets
-        self.params = params
+        self.params = {x: params[x][0] for x in params}
+        for x in self.params:
+            if "," in str(self.params[x]):
+                self.params[x] = self.params[x].split(',')
+
         self.market_data = market_data
-        self.hard_hp = self.params['handpicked_symbols'][0]
-        self.hard_hp_amts = self.params['handpicked_amts'][0]
-        if "," in self.hard_hp:
-            self.hard_hp = self.hard_hp.split(',')
-            self.hard_hp_amts = [float(x)
-                                 for x in self.hard_hp_amts.split(',')]
-        else:
-            self.hard_hp = [self.hard_hp]
-            self.hard_hp_amts = [self.hard_hp_amts]
 
         gains = {}
         for symbol in self.assets:
@@ -78,26 +74,26 @@ class FundamentalsRebalancingStakingHODL(Model):
 
     def balanced_portfolio(self):
         weights = {}
-        banned_coins = self.params['banned_coins'][0].split(',')
+        banned_coins = self.params['banned_coins']
         total = 1
         # handpicked-hard
-        hard_hp = self.hard_hp
-        hard_hp_amts = self.hard_hp_amts
+        hard_hp = self.params['hard_hp']
+        hard_hp_amts = self.params['hard_hp_amts']
         for i in range(len(hard_hp)):
             banned_coins.append(hard_hp[i])
-            total -= hard_hp_amts[i]
-            weights[hard_hp[i].strip()] = float(hard_hp_amts[i])
+            total -= float(hard_hp_amts[i])
+            weights[hard_hp[i]] = float(hard_hp_amts[i])
 
         min_profit = float(self.params['profit_pct'])
         min_trade_fiat = float(self.params['min_trade_fiat'])
         self.dynamic_mcap = math.floor(
             (min_profit * self.fiat_total * total)/min_trade_fiat)
-        self.mcap_coins = min(max(int(self.params['min_mcap_coins'][0]), self.dynamic_mcap), int(
-            self.params['max_mcap_coins'][0]))
+        self.mcap_coins = min(max(int(self.params['min_mcap_coins']), self.dynamic_mcap), int(
+            self.params['max_mcap_coins']))
         self.fraction = total/self.mcap_coins
         lots_open = self.mcap_coins
-        if self.params['handpicked_mcap'][0]:
-            symbols = self.params['handpicked_mcap'][0].split(',')
+        if self.params['handpicked_mcap']:
+            symbols = self.params['handpicked_mcap']
             for symbol in symbols:
                 weights[symbol] = self.fraction
                 banned_coins.append(symbol)
@@ -122,7 +118,7 @@ class FundamentalsRebalancingStakingHODL(Model):
                     for next_coin in self.market_data:
                         next_symbol = next_coin['symbol']
                         if next_symbol not in banned_coins and next_symbol in self.assets.keys():
-                            if next_coin['quote']['USD']['market_cap'] > (1 - self.params['wiggle'][0]) * coin['quote']['USD']['market_cap']:
+                            if next_coin['quote']['USD']['market_cap'] > (1 - self.params['wiggle']) * coin['quote']['USD']['market_cap']:
                                 skipped = symbol
                                 symbol = next_symbol
                             break
@@ -143,15 +139,14 @@ class FundamentalsRebalancingStakingHODL(Model):
         new_coins = {}
         gains = self.gains
         # checking for any fiat holdings
-        base_fiat = self.params['base_fiat'][0]
-        fiat_holdings = self.assets.get(base_fiat, False)
+        fiat_holdings = self.assets.get(self.params['base_fiat'], False)
         if fiat_holdings:
             usd_amt = fiat_holdings['tot']
         else:
             usd_amt = 0
 
         for element in diff:
-            if element == self.params['base_fiat'][0]:
+            if element == self.params['base_fiat']:
                 continue
             # new coins
             if element not in self.assets.keys():
@@ -160,9 +155,8 @@ class FundamentalsRebalancingStakingHODL(Model):
             else:
                 liquid = (self.assets[element]['tot'] -
                           self.assets[element]['locked'])*self.assets[element]['new_price']
-                min_fiat_trade = self.params['min_trade_fiat'][0]
                 # take profit
-                if gains[element] > self.params['profit_pct'][0] and liquid > min_fiat_trade and diff[element] > min_fiat_trade:
+                if gains[element] > self.params['profit_pct'] and liquid > self.params['min_trade_fiat'] and diff[element] > self.params['min_trade_fiat']:
                     instructions.append(
                         {'symbol': element, 'coins': round(float(token_diff[element][0]), 2), 'usd_amt': diff[element], 'side': "SELL"})
                     usd_amt += diff[element]
@@ -173,13 +167,13 @@ class FundamentalsRebalancingStakingHODL(Model):
                         {'symbol': element, 'coins': round(float(token_diff[element][0]), 2), 'usd_amt': diff[element], 'side': "SELL"})
                     usd_amt += diff[element]
         # check usd amount before doing buys
-        if usd_amt < min_fiat_trade:
+        if usd_amt < self.params['abs_min_fiat']:
             return False
 
         # prio 1: handpicks
-        for symbol in self.hard_hp:
+        for symbol in self.params['hard_hp']:
             diff = -self.diff_matrix[symbol]
-            if diff > min_fiat_trade and diff < usd_amt:
+            if diff > self.params['min_trade_fiat'] and diff < usd_amt:
                 instructions.append({'symbol': symbol, 'coins': round(
                     float(token_diff[symbol][0]), 2), 'usd_amt': diff, 'side': "BUY"})
                 usd_amt -= diff
@@ -196,30 +190,19 @@ class FundamentalsRebalancingStakingHODL(Model):
                 price = element['quote']['USD']['price']
                 new_coins[element['symbol']] = [round(
                     float(diff_fiat/price)*-1, 4), price]
-        '''
-        for element in new_coins:
-            diff_fiat = diff_m[element] * -1
-            if diff_fiat < min_fiat_trade or usd_amt < min_fiat_trade:
-                return instructions
-            if usd_amt < diff_fiat:
-                instructions.append(
-                    {'symbol': element, 'coins': round(usd_amt/new_coins[element][1], 3), 'usd_amt': usd_amt, 'side': "BUY"})
-                return instructions
-            instructions.append(
-                {'symbol': element, 'coins': new_coins[element][0], 'usd_amt': diff_fiat, 'side': "BUY"})
-            usd_amt -= diff_fiat
-'''
+
         # prio 3: mcap_coins that we have
         mcap_diffs = {}
         for element in self.diff_matrix:
-            if element not in self.hard_hp:
+            if element not in self.params['hard_hp']:
                 mcap_diffs[element] = self.diff_matrix[element]
             # sort mcaps
         mcap_diffs = sorted(mcap_diffs.items(), key=lambda x: x[1])
         # get list of all mcap diffs that we are missing and are viable
-        mcap_diffs = list(filter(lambda x: x[1] < -min_fiat_trade, mcap_diffs))
+        mcap_diffs = list(
+            filter(lambda x: x[1] < -self.params['min_trade_fiat'], mcap_diffs))
 
-        lots = math.floor(usd_amt/min_fiat_trade)
+        lots = math.floor(usd_amt/self.params['abs_min_fiat'])
         if lots > len(mcap_diffs):
             lots = len(mcap_diffs)
         tot = 0
@@ -249,7 +232,7 @@ class FundamentalsRebalancingStakingHODL(Model):
         mcap_diffs = dict(mcap_diffs)
         for element in mcap_diffs:
             diff_fiat = mcap_diffs[element] * -1
-            if diff_fiat < min_fiat_trade or usd_amt < min_fiat_trade:
+            if diff_fiat < self.params['min_trade_fiat'] or usd_amt < self.params['min_trade_fiat']:
                 return instructions
             if usd_amt < diff_fiat:
                 instructions.append(
@@ -262,11 +245,11 @@ class FundamentalsRebalancingStakingHODL(Model):
 
     def instruct(self):
         # free usd to trade for?
-        if self.assets.get(self.params['base_fiat'][0], {}).get('tot', 0) > self.params['min_trade_fiat'][0]:
+        if self.assets.get(self.params['base_fiat'], {}).get('tot', 0) > self.params['abs_min_fiat']:
             return self.generate_instructions()
         # take profit?
         for symbol in self.gains:
-            if self.gains[symbol] > self.params['profit_pct'][0] and self.diff_matrix[symbol] > self.params['min_trade_fiat'][0]:
+            if self.gains[symbol] > self.params['profit_pct'] and self.diff_matrix[symbol] > self.params['min_trade_fiat']:
                 return self.generate_instructions()
         # dropped coins?
         for element in self.assets:

@@ -255,7 +255,7 @@ class McapModel(Model):
         for element in self.assets:
             difference = self.diff_matrix[element]
             holding = self.assets[element]['tot'] * \
-                self.assets[element]['new_price']*0.9
+                self.assets[element]['new_price']*self.params['wiggle']
             if difference > holding:
                 return self.generate_instructions()
         return False

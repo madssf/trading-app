@@ -12,7 +12,7 @@ def main(context, market_data):
     instructions = None
     try:
         assets = backend.get_assets()
-        model = models.FundamentalsRebalancingStakingHODL(
+        model = models.McapModel(
             assets, backend.get_sheet_by_name("model_inputs"), market_data)
         instructions = model.instruct()
 

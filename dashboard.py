@@ -1,16 +1,14 @@
-from pandas.core.algorithms import diff
 import streamlit as st
 import pandas as pd
 import backend
 import lambda_func
 import models
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 import plotly.express as px
 from graphs import graphs
 
 # getting backend and model instructions
-# "watchlist", "trade_log", "order_log"
 sheet_names = ["curr_pf", "model_inputs", "staked",
                "deposits", "invoke_log", 'assets_log', 'mcap_log']
 
@@ -23,8 +21,9 @@ model = models.McapModel(
     assets, sheets['model_inputs'], cmc_market_data)
 
 
-def get_historic_prices(symbols, since):
-    return backend.get_historical_prices(symbols, since)
+token_hist, hist_fig = graphs.PFHistory(
+    sheets['assets_log'])
+perf_stats, perf_fig = graphs.PerfHistory(sheets['mcap_log'], token_hist)
 
 
 instructions = model.instruct()
@@ -44,6 +43,12 @@ st.sidebar.write(f'updated **{now}**')
 st.sidebar.write(f"invoked: **{sheets['invoke_log'].iloc[0][0][11:]}**")
 st.sidebar.write(f"balance **{round(model.get_fiat_total())} $**")
 st.sidebar.write(f"performance ** {perf} % **")
+day_intervals = [1, 7, 20]
+perf_matrix = {x: {} for x in perf_stats.columns}
+for pf_type in perf_stats.columns:
+    for num_days in day_intervals:
+        perf_matrix[pf_type][num_days] = f"{round((perf_stats[pf_type].iloc[-1] - perf_stats[pf_type].iloc[-(num_days+1)])*100,2)} %"
+st.sidebar.table(perf_matrix)
 st.sidebar.subheader('model')
 st.sidebar.write(f"mcap_coins **{model.mcap_coins}**")
 st.sidebar.write(f"dynamic_mcap **{model.dynamic_mcap}**")
@@ -66,73 +71,34 @@ if instructions:
 
 
 # DASHBOARD STARTS HERE
-assets_df = pd.DataFrame(assets).transpose()
 
 
-# portfolio pie chart
-pf_df = pd.DataFrame(assets_df['tot']*assets_df['new_price'])
-pf_df.columns = ['$ amt']
-pf_df = pf_df.transpose()
-names = []
-for element in pf_df.keys():
-    names.append(element)
-pf_fig = px.pie(pf_df.transpose(), values='$ amt',
-                names=names, hole=.3)
-pf_fig.update_traces(textposition='inside',
-                     textinfo="label + percent")
+pf_fig = graphs.PFPIE(assets)
 st.subheader('portfolio')
 st.plotly_chart(pf_fig)
 
 
 # diff bar chart
-names = []
-for element in pf_df.keys():
-    names.append(element)
-diff_df = pd.DataFrame(model.get_diff_matrix(), index=['diff']).transpose()
-diff_df['tokens'] = model.token_diff()
-fig = px.bar(diff_df, hover_data=[
-    'tokens'])
-fig.update_layout(showlegend=False)
-fig.update_yaxes(title='$ diff')
-fig.update_xaxes(title='coins')
+
+diff_df, rb_fig = graphs.RBDiff(model.diff_matrix, model.get_token_diff())
 st.subheader('rebalancing')
-st.plotly_chart(fig)
+st.plotly_chart(rb_fig)
 
 
 # perf history graph
-token_hist, hist_fig = graphs.PFHistory(
-    sheets['assets_log'], get_historic_prices)
-perf_fig = graphs.PerfHistory(sheets['mcap_log'], token_hist)
 st.subheader('performance history')
 st.plotly_chart(perf_fig)
 
-
 # performance and market data
-perf_df = pd.DataFrame(model.get_gains(), index=[
-    "% gain"]).transpose()
-perf_df["% gain"] = perf_df["% gain"].apply(lambda x: float(x)*100)
-# getting market data for portfolio coins
-pf_market = backend.cmc_quotes_latest(perf_df.transpose().keys())
-market_df = {}
-for element in pf_market:
-    market_df[element] = pf_market[element]['quote']['USD']
-market_df = pd.DataFrame(market_df).transpose().drop(
-    columns=['last_updated', 'market_cap', 'volume_24h', 'percent_change_30d', 'percent_change_60d', 'percent_change_7d'])
-market_df = market_df.apply(pd.to_numeric)
-market_df.columns = ["price", "%1h", "%24h", "%90d"]
-# daily % change, total dollar value, total tokens here
-market_df.insert(loc=1, column='% gain', value=perf_df['% gain'])
-market_df.insert(loc=2, column='$ diff', value=diff_df['diff'])
-market_df.insert(loc=3, column='avg price', value=assets_df['avg_price'])
-st.subheader('market data')
+market_df = graphs.MarketDF(model.get_gains(), assets, diff_df)
 st.write(market_df)
 
 # history
 st.subheader('portfolio history')
 st.plotly_chart(hist_fig)
 
-
 # staked, coin holdings
+assets_df = pd.DataFrame(assets).transpose()
 for col in assets_df.columns:
     if col == 'stake_exp':
         assets_df[col] = assets_df[col].apply(

@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
+import backend
 import pandas as pd
 import re
 import plotly.express as px
 
 
-def PFHistory(assets_history, get_historic_prices):
+def PFHistory(assets_history):
     start = assets_history['time'][len(assets_history)-1]
     # get all coins that we have ever held
     held = []
@@ -19,7 +20,8 @@ def PFHistory(assets_history, get_historic_prices):
         datetime.strptime(start, '%m/%d/%Y, %H:%M:%S'))*1000))
 
     # Open time, Open, High, Low, Close, Volume, Close time, Quote  asset volume, Number of trades, Taker buy base asset volume, Taker   buy quote asset volume, Ignore.
-    hist_df = pd.DataFrame(get_historic_prices(held, start)).transpose()
+    hist_df = pd.DataFrame(
+        backend.get_historical_prices(held, start)).transpose()
     hist_timestamps = [x[6]for x in hist_df.iloc[0]]
     assets_timestamps = [int(datetime.timestamp(
         datetime.strptime(x, '%m/%d/%Y, %H:%M:%S'))*1000) for x in assets_history['time']]
@@ -124,7 +126,7 @@ def PerfHistory(mcap_log_sheet, token_hist):
         prev_prices = prices
 
     pf_history = {x: pf_history[x]-1 for x in pf_history}
-    perf_history['pf_value'] = [x[1] for x in pf_history.items()]
+    perf_history['pf'] = [x[1] for x in pf_history.items()]
 
     # mcap portfolio
     first = True
@@ -142,10 +144,54 @@ def PerfHistory(mcap_log_sheet, token_hist):
         prev_tstamp = tstamp
         prev_mcap = mcap
     mcap_history = {x: mcap_history[x]-1 for x in mcap_history}
-    perf_history['mcap_pf'] = mcap_history.values()
+    perf_history['mcap'] = mcap_history.values()
 
     fig = px.line(perf_history)
-    return fig
+    return perf_history, fig
+
+
+def PFPIE(assets):
+    pf = {asset: round(assets[asset]['tot'] * assets[asset]
+          ['new_price']) for asset in assets}
+    pf_df = pd.DataFrame(pf, index=[0]).transpose()
+    pf_df.columns = ['$ amt']
+    pf_fig = px.pie(pf_df, values='$ amt',
+                    names=[name for name in pf.keys()], hole=.3)
+    pf_fig.update_traces(textposition='inside',
+                         textinfo="label + percent + value")
+    return pf_fig
+
+
+def RBDiff(diff_matrix, token_diff):
+    diff_df = pd.DataFrame(diff_matrix, index=['diff']).transpose()
+    diff_df['tokens'] = token_diff
+    fig = px.bar(diff_df, hover_data=[
+        'tokens'])
+    fig.update_layout(showlegend=False)
+    fig.update_yaxes(title='$ diff')
+    fig.update_xaxes(title='coins')
+    return diff_df, fig
+
+
+def MarketDF(gains, assets, diffs):
+    perf_df = pd.DataFrame(gains, index=[
+        "% gain"]).transpose()
+    perf_df["% gain"] = perf_df["% gain"].apply(lambda x: float(x)*100)
+    # getting market data for portfolio coins
+    pf_market = backend.cmc_quotes_latest(perf_df.transpose().keys())
+    market_df = {}
+    for element in pf_market:
+        market_df[element] = pf_market[element]['quote']['USD']
+    market_df = pd.DataFrame(market_df).transpose().drop(
+        columns=['last_updated', 'market_cap', 'volume_24h', 'percent_change_30d', 'percent_change_60d', 'percent_change_90d',  'percent_change_7d'])
+    market_df = market_df.apply(pd.to_numeric)
+    market_df.columns = ["price", "%1h", "%24h"]
+    # daily % change, total dollar value, total tokens here
+    assets = pd.DataFrame(assets).transpose()
+    market_df.insert(loc=1, column='avg price', value=assets['avg_price'])
+    market_df.insert(loc=2, column='% gain', value=perf_df['% gain'])
+    market_df.insert(loc=3, column='$ diff', value=diffs['diff'])
+    return market_df
 
 
 def closest_mcap(tstamp, mcap_log_sheet):

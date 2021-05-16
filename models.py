@@ -32,15 +32,13 @@ class McapModel(Model):
             except(ZeroDivisionError):
                 gains[symbol] = 0
         self.gains = gains
-        fiat_temp = 0
-        for asset in assets:
-            fiat_temp += assets[asset]['new_price'] * assets[asset]['tot']
-        self.fiat_total = fiat_temp
+        self.fiat_total = sum([self.assets[asset]['new_price']
+                              * self.assets[asset]['tot'] for asset in self.assets])
 
         self.balanced_pf = self.balanced_portfolio()
-        self.get_diff_matrix()
+        self.diff_matrix = self.get_diff_matrix(self.balanced_pf)
 
-    def token_diff(self):
+    def get_token_diff(self):
         data = {}
 
         for element in self.diff_matrix:
@@ -54,9 +52,8 @@ class McapModel(Model):
         data.columns = ['token diff']
         return data
 
-    def get_diff_matrix(self):
+    def get_diff_matrix(self, balanced):
         # do some calculatons with input_params
-        balanced = self.balanced_pf
         diffs = {}
         for element in balanced:
             element = element.strip()
@@ -69,7 +66,6 @@ class McapModel(Model):
             if element not in diffs.keys():
                 diffs[element] = self.assets[element]['tot'] * \
                     self.assets[element]['new_price']
-        self.diff_matrix = diffs
         return diffs
 
     def balanced_portfolio(self):
@@ -135,7 +131,7 @@ class McapModel(Model):
         # return false if cant trade due to staked
         diff = self.diff_matrix
         instructions = []
-        token_diff = self.token_diff().transpose()
+        token_diff = self.get_token_diff().transpose()
         new_coins = {}
         gains = self.gains
         # checking for any fiat holdings

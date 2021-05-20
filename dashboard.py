@@ -43,7 +43,7 @@ st.sidebar.write(f'updated **{now}**')
 st.sidebar.write(f"invoked: **{sheets['invoke_log'].iloc[0][0][11:]}**")
 st.sidebar.write(f"balance **{round(model.get_fiat_total())} $**")
 st.sidebar.write(f"performance ** {perf} % **")
-day_intervals = [1, 7, 20]
+day_intervals = [1, 7, 30]
 perf_matrix = {x: {} for x in perf_stats.columns}
 for pf_type in perf_stats.columns:
     for num_days in day_intervals:

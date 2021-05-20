@@ -29,7 +29,7 @@ All models must implement:
           # return None if trading condition not met
           # else: return a list of valid trades to perform
 
-### FundamentalsRebalancingStakingHODL
+### MCAPModel
 
 - Holds a portfolio of equal dollar amounts of the highest <em>x</em> coins by market cap, where <em>x</em> is the highest amount of coins allowing take-profit after a set percentage gain, given a minimum trade amount (in fiat currency).
 
@@ -48,7 +48,9 @@ All models must implement:
 
 - `hanpdicked_coins: dict[string symbol: float weight]`
 
-- `minimum_market_coins: int`
+- `minimum_coins: int`
+
+- `maximum_coins: int`
 
 - `take_profit_pct: float`
 
@@ -61,13 +63,6 @@ All models must implement:
 - https://cs.stackexchange.com/questions/80798/portfolio-rebalancing-algorithm
 - https://investopedia.com/articles/stocks/11/rebalancing-strategies.asp
 - https://en.wikipedia.org/wiki/Metcalfe%27s_law
-
-### MarketCapPortfolio
-
-#### Input parameters
-
-- `minimum_market_coins: int`
-- `banned_coins: list[string symbol]`
 
 ## Performing trades
 

@@ -99,6 +99,8 @@ def get_assets():
                 locked = True
                 symbol = "ETH"
             if symbol not in assets.keys():
+                if symbol == "ATA":
+                    continue
                 assets[symbol] = {'tot': 0, 'flex': 0, 'locked': 0,
                                   'avg_price': 0, 'new_price': 0, 'stake_exp': None}
 
